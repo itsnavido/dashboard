@@ -79,10 +79,11 @@ app.use((req, res, next) => {
   // Store original end function to ensure session is saved
   const originalEnd = res.end;
   res.end = function(...args) {
-    // If session has passport data, ensure it's saved by reassigning (triggers cookie-session to save)
+    // If session has passport data, ensure it's saved by setting a direct property
+    // This triggers cookie-session's change detection (it only watches direct properties)
     if (req.session && req.session.passport && Object.keys(req.session.passport).length > 0) {
-      // Reassign to trigger cookie-session's change detection
-      req.session = { ...req.session };
+      // Set a timestamp to trigger cookie-session to save the session
+      req.session._lastModified = Date.now();
     }
     originalEnd.apply(res, args);
   };

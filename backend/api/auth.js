@@ -150,11 +150,11 @@ router.get('/discord/callback', (req, res, next) => {
         passportKeys: req.session?.passport ? Object.keys(req.session.passport) : []
       });
       
-      // For cookie-session, we need to explicitly trigger a save by reassigning the session
-      // This ensures nested changes (like req.session.passport.user) are detected
+      // For cookie-session, we need to explicitly trigger change detection
+      // cookie-session only detects changes to direct properties, not nested ones
+      // So we set a timestamp property to force cookie-session to save the session
       if (req.session) {
-        // Create a new object to trigger cookie-session's change detection
-        req.session = JSON.parse(JSON.stringify(req.session));
+        req.session._lastModified = Date.now();
       }
       
       res.redirect(frontendUrl);
