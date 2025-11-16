@@ -624,6 +624,7 @@ async function setCellValue(sheetName, rowIndex, columnIndex, value) {
 
 module.exports = {
   initSheets,
+  initSheetsClient,
   getSheet,
   getRows,
   addRow,

@@ -3,6 +3,7 @@ const sheets = require('./sheets');
 const cache = require('./cache');
 const config = require('../config/config');
 const bcrypt = require('bcrypt');
+const { google } = require('googleapis');
 
 /**
  * Get user by Discord ID
@@ -174,41 +175,41 @@ async function getUserNickname(discordId) {
 async function getUserByUsername(username) {
   try {
     console.log('[UserService] Looking for username:', username);
-    const rows = await sheets.getRows(config.sheetNames.users);
-    console.log('[UserService] Total rows found:', rows.length);
     
-    // Debug: Log all usernames we find
-    rows.forEach((r, idx) => {
-      const testUsername = r.get('username') || r.username || r['username'] || '';
-      console.log(`[UserService] Row ${idx} username:`, testUsername, 'type:', typeof testUsername);
+    // Use raw API to read Users sheet to avoid caching issues
+    const client = await sheets.initSheetsClient();
+    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+    const sheetName = config.sheetNames.users;
+    
+    // Read all rows from Users sheet (row 1 is header, data starts at row 2)
+    const response = await client.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A2:G`, // Read from row 2 onwards (skip header)
     });
     
-    const row = rows.find(r => {
-      // Users sheet uses header-based access, try multiple methods
-      // google-spreadsheet uses get() method primarily
-      const rowUsername = r.get('username') || r.username || r['username'] || '';
-      const usernameStr = rowUsername ? String(rowUsername).trim() : '';
-      const match = usernameStr && usernameStr.toLowerCase() === username.toLowerCase();
-      if (match) {
-        console.log('[UserService] Found matching row with username:', usernameStr);
-      }
-      return match;
+    const rows = response.data.values || [];
+    console.log('[UserService] Total rows found via raw API:', rows.length);
+    
+    // Find row with matching username (column F, index 5)
+    const rowIndex = rows.findIndex(row => {
+      const rowUsername = (row[5] || '').toString().trim();
+      return rowUsername && rowUsername.toLowerCase() === username.toLowerCase();
     });
     
-    if (row) {
-      // Users sheet uses header-based access via google-spreadsheet
-      // google-spreadsheet primarily uses get() method
+    if (rowIndex !== -1) {
+      const row = rows[rowIndex];
+      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4), username (5), password (6)
       const user = {
-        discordId: row.get('discordId') || row.discordId || row['discordId'] || '',
-        role: row.get('role') || row.role || row['role'] || '',
-        createdAt: row.get('createdAt') || row.createdAt || row['createdAt'] || '',
-        updatedAt: row.get('updatedAt') || row.updatedAt || row['updatedAt'] || '',
-        nickname: row.get('nickname') || row.nickname || row['nickname'] || '',
-        username: row.get('username') || row.username || row['username'] || '',
-        password: row.get('password') || row.password || row['password'] || '' // Hashed password
+        discordId: (row[0] || '').toString(),
+        role: (row[1] || '').toString(),
+        createdAt: (row[2] || '').toString(),
+        updatedAt: (row[3] || '').toString(),
+        nickname: (row[4] || '').toString(),
+        username: (row[5] || '').toString(),
+        password: (row[6] || '').toString() // Hashed password
       };
       
-      console.log('[UserService] User data retrieved:', {
+      console.log('[UserService] User data retrieved via raw API:', {
         discordId: user.discordId,
         username: user.username,
         hasPassword: !!user.password,
@@ -217,6 +218,13 @@ async function getUserByUsername(username) {
       
       return user;
     }
+    
+    // Debug: Log all usernames found
+    console.log('[UserService] All usernames found:');
+    rows.forEach((r, idx) => {
+      const testUsername = (r[5] || '').toString().trim();
+      console.log(`[UserService] Row ${idx} username: "${testUsername}"`);
+    });
     
     console.log('[UserService] No user found with username:', username);
     return null;
