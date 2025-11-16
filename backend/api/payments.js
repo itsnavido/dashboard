@@ -50,6 +50,44 @@ router.get('/', requireAuth, async (req, res) => {
       };
     });
     
+    // Sort payments by time (latest first)
+    // Time format: "DD/MM/YYYY HH:MM:SS"
+    payments.sort((a, b) => {
+      const parseTime = (timeStr) => {
+        if (!timeStr || !timeStr.trim()) return 0;
+        try {
+          // Parse format: "DD/MM/YYYY HH:MM:SS"
+          const [datePart, timePart] = timeStr.trim().split(' ');
+          if (!datePart || !timePart) return 0;
+          
+          const [day, month, year] = datePart.split('/');
+          const [hours, minutes, seconds] = timePart.split(':');
+          
+          if (!day || !month || !year || !hours || !minutes || !seconds) return 0;
+          
+          // Create date in GMT+3:30 timezone (reverse the offset)
+          const date = new Date(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            parseInt(hours),
+            parseInt(minutes),
+            parseInt(seconds)
+          );
+          // Adjust for GMT+3:30 offset
+          return date.getTime() - (3.5 * 60 * 60 * 1000);
+        } catch (e) {
+          return 0;
+        }
+      };
+      
+      const timeA = parseTime(a.time);
+      const timeB = parseTime(b.time);
+      
+      // Sort descending (newest first)
+      return timeB - timeA;
+    });
+    
     cache.setPaymentList(cacheKey, payments);
     res.json(payments);
   } catch (error) {
