@@ -56,12 +56,12 @@ const Dashboard = () => {
   const isAdmin = user.role === 'Admin';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--gray-50)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
       <div className="dashboard-header">
         <h1>Payment Dashboard</h1>
         <div className="dashboard-user-info">
           <span>
-            Welcome, <strong>{user.username}</strong> <span style={{ color: 'var(--gray-400)' }}>({user.role})</span>)
+            Welcome, <strong>{user.username}</strong> <span style={{ color: 'var(--text-tertiary)' }}>({user.role})</span>)
           </span>
           <button onClick={handleLogout} className="btn-small">
             Logout
