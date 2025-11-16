@@ -104,7 +104,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 <th>Realm</th>
                 <th>Amount</th>
                 <th>Price</th>
-                <th>Gheymat</th>
+                <th>Total Amount</th>
                 <th>Duration</th>
                 <th>Time Left</th>
                 <th>Admin</th>
@@ -159,7 +159,14 @@ const PaymentList = ({ onEdit, onDelete }) => {
                       <td>{payment.realm}</td>
                       <td>{payment.amount}</td>
                       <td>{payment.price}</td>
-                      <td>{payment.gheymat ? formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0) : ''}</td>
+                      <td>
+                        {payment.gheymat ? (
+                          <>
+                            {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
+                            {payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial'}
+                          </>
+                        ) : ''}
+                      </td>
                       <td>{payment.paymentDuration}</td>
                       <td>{payment.timeLeftToPay || ''}</td>
                       <td>{payment.admin}</td>

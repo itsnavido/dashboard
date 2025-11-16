@@ -223,7 +223,7 @@ router.post('/', requireAuth, async (req, res) => {
     
     // Send Discord webhook
     try {
-      const currency = paymentDuration === 'usdt days' ? '$' : 'Toman';
+      const currency = paymentDuration === 'usdt days' ? '$' : 'Rial';
       await discord.sendDiscordMessage({
         discordId,
         amount: parseFloat(amount) || 0,
@@ -322,7 +322,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     
     // Get updated payment data for webhook (include old values, especially oldPrice)
     const paymentDurationForCurrency = req.body.paymentDuration || currentPayment.paymentDuration;
-    const currency = paymentDurationForCurrency === 'usdt days' ? '$' : 'Toman';
+    const currency = paymentDurationForCurrency === 'usdt days' ? '$' : 'Rial';
     
     const updatedPayment = {
       ...currentPayment,
@@ -397,7 +397,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
       action: 'delete',
       deletedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
-      currency: getValue(cols.paymentDuration) === 'usdt days' ? '$' : 'Toman'
+      currency: getValue(cols.paymentDuration) === 'usdt days' ? '$' : 'Rial'
     };
     
     await sheets.deleteRow(row, config.sheetNames.payment, rowIndex);
