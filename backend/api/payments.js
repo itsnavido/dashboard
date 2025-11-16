@@ -204,7 +204,7 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.wallet] = wallet || '';
     paymentData[cols.uniqueID] = uniqueID;
     paymentData[cols.admin] = adminName;
-    paymentData[cols.processed] = false;
+    // Don't set processed field - leave it empty (managed via sheet itself)
     
     // Add to payment sheet - create array in correct column order
     // Columns: 0-4 (time, userid, paymentDuration, amount, price), 5 (#VALUE! - leave empty), 6-15 (rest)
