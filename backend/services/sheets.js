@@ -622,6 +622,108 @@ async function setCellValue(sheetName, rowIndex, columnIndex, value) {
   await sheet.saveUpdatedCells();
 }
 
+/**
+ * Add a payment log entry
+ * Payment Logs sheet structure: Payment ID, Action, User, Timestamp, Changes (JSON)
+ */
+async function addPaymentLog(paymentUniqueID, action, userId, changes) {
+  const client = await initSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const sheetName = config.sheetNames.paymentLogs;
+
+  try {
+    const utils = require('./utils');
+    const timestamp = utils.formatDate();
+    const changesJson = JSON.stringify(changes || {});
+
+    // Check if sheet exists, if not create it
+    const doc = await initSheets();
+    let sheet = doc.sheetsByTitle[sheetName];
+    
+    if (!sheet) {
+      // Create the sheet with headers
+      sheet = await doc.addSheet({ title: sheetName });
+      // Add headers: Payment ID, Action, User, Timestamp, Changes
+      await sheet.setHeaderRow(['Payment ID', 'Action', 'User', 'Timestamp', 'Changes']);
+    }
+
+    // Add log entry
+    await sheet.addRow({
+      'Payment ID': paymentUniqueID,
+      'Action': action, // 'create' or 'edit'
+      'User': userId,
+      'Timestamp': timestamp,
+      'Changes': changesJson
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding payment log:', error);
+    // Don't throw - logging failures shouldn't break payment operations
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get payment logs for a specific payment
+ */
+async function getPaymentLogs(paymentUniqueID) {
+  try {
+    const doc = await initSheets();
+    const sheetName = config.sheetNames.paymentLogs;
+    const sheet = doc.sheetsByTitle[sheetName];
+    
+    if (!sheet) {
+      return [];
+    }
+
+    await sheet.loadHeaderRow();
+    const rows = await sheet.getRows();
+
+    // Filter logs for this payment ID
+    const logs = rows
+      .filter(row => row.get('Payment ID') === paymentUniqueID)
+      .map(row => ({
+        id: row.rowNumber,
+        paymentID: row.get('Payment ID'),
+        action: row.get('Action'),
+        user: row.get('User'),
+        timestamp: row.get('Timestamp'),
+        changes: JSON.parse(row.get('Changes') || '{}')
+      }))
+      .sort((a, b) => {
+        // Sort by timestamp descending (newest first)
+        const parseTime = (timeStr) => {
+          if (!timeStr || !timeStr.trim()) return 0;
+          try {
+            const [datePart, timePart] = timeStr.trim().split(' ');
+            if (!datePart || !timePart) return 0;
+            const [day, month, year] = datePart.split('/');
+            const [hours, minutes, seconds] = timePart.split(':');
+            if (!day || !month || !year || !hours || !minutes || !seconds) return 0;
+            const date = new Date(
+              parseInt(year),
+              parseInt(month) - 1,
+              parseInt(day),
+              parseInt(hours),
+              parseInt(minutes),
+              parseInt(seconds)
+            );
+            return date.getTime() - (3.5 * 60 * 60 * 1000);
+          } catch (e) {
+            return 0;
+          }
+        };
+        return parseTime(b.timestamp) - parseTime(a.timestamp);
+      });
+
+    return logs;
+  } catch (error) {
+    console.error('Error fetching payment logs:', error);
+    return [];
+  }
+}
+
 module.exports = {
   initSheets,
   initSheetsClient,
@@ -633,6 +735,8 @@ module.exports = {
   updateUserRowRaw,
   deleteRow,
   getCellValue,
-  setCellValue
+  setCellValue,
+  addPaymentLog,
+  getPaymentLogs
 };
 

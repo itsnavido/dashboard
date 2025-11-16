@@ -23,7 +23,11 @@ const PaymentList = ({ onEdit, onDelete }) => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 50;
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [expandedPayments, setExpandedPayments] = useState(new Set());
+  const [paymentLogs, setPaymentLogs] = useState({});
 
   useEffect(() => {
     fetchPayments();
@@ -43,18 +47,48 @@ const PaymentList = ({ onEdit, onDelete }) => {
     }
   };
 
-  // Filter payments based on search term (Discord ID or uniqueID)
+  // Filter and sort payments
   const filteredPayments = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return payments;
+    let filtered = payments;
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase().trim();
+      filtered = payments.filter(payment => 
+        (payment.userid && payment.userid.toLowerCase().includes(search)) ||
+        (payment.uniqueID && payment.uniqueID.toLowerCase().includes(search)) ||
+        (String(payment.id).includes(search))
+      );
     }
-    const search = searchTerm.toLowerCase().trim();
-    return payments.filter(payment => 
-      (payment.userid && payment.userid.toLowerCase().includes(search)) ||
-      (payment.uniqueID && payment.uniqueID.toLowerCase().includes(search)) ||
-      (String(payment.id).includes(search))
-    );
-  }, [payments, searchTerm]);
+    
+    // Apply sorting
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let aVal = a[sortColumn];
+        let bVal = b[sortColumn];
+        
+        // Handle numeric values
+        if (sortColumn === 'amount' || sortColumn === 'price' || sortColumn === 'gheymat') {
+          aVal = parseFloat(String(aVal || '').replace(/,/g, '')) || 0;
+          bVal = parseFloat(String(bVal || '').replace(/,/g, '')) || 0;
+        }
+        
+        // Handle string values
+        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+        
+        // Handle null/undefined
+        if (aVal == null) aVal = '';
+        if (bVal == null) bVal = '';
+        
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    return filtered;
+  }, [payments, searchTerm, sortColumn, sortDirection]);
 
   // Paginate filtered payments
   const paginatedPayments = useMemo(() => {
@@ -65,9 +99,38 @@ const PaymentList = ({ onEdit, onDelete }) => {
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
 
   useEffect(() => {
-    // Reset to page 1 when search changes
+    // Reset to page 1 when search or sort changes
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, sortColumn, sortDirection]);
+
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const togglePaymentExpansion = async (paymentId, uniqueID) => {
+    const newExpanded = new Set(expandedPayments);
+    if (newExpanded.has(paymentId)) {
+      newExpanded.delete(paymentId);
+    } else {
+      newExpanded.add(paymentId);
+      // Fetch logs if not already loaded
+      if (!paymentLogs[uniqueID]) {
+        try {
+          const response = await api.get(`/payments/${paymentId}/logs`);
+          setPaymentLogs(prev => ({ ...prev, [uniqueID]: response.data }));
+        } catch (err) {
+          console.error('Error fetching logs:', err);
+          setPaymentLogs(prev => ({ ...prev, [uniqueID]: [] }));
+        }
+      }
+    }
+    setExpandedPayments(newExpanded);
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this payment?')) {
@@ -113,29 +176,50 @@ const PaymentList = ({ onEdit, onDelete }) => {
           <table>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Time</th>
-                <th>Discord ID</th>
-                <th>Realm</th>
-                <th>Amount</th>
-                <th>Price</th>
-                <th>Total Amount</th>
-                <th>Duration</th>
-                <th>Time Left</th>
-                <th>Admin</th>
+                <th></th>
+                <th onClick={() => handleSort('uniqueID')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  ID {sortColumn === 'uniqueID' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('time')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Time {sortColumn === 'time' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('userid')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Discord ID {sortColumn === 'userid' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('realm')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Realm {sortColumn === 'realm' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('amount')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Amount {sortColumn === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('price')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Price {sortColumn === 'price' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('gheymat')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Total Amount {sortColumn === 'gheymat' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('paymentDuration')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Duration {sortColumn === 'paymentDuration' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('timeLeftToPay')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Time Left {sortColumn === 'timeLeftToPay' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th onClick={() => handleSort('admin')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Admin {sortColumn === 'admin' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="11" style={{ textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="12" style={{ textAlign: 'center', padding: '40px' }}>
                     Loading payments...
                   </td>
                 </tr>
               ) : paginatedPayments.length === 0 ? (
                 <tr>
-                  <td colSpan="11" style={{ textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="12" style={{ textAlign: 'center', padding: '40px' }}>
                     {searchTerm ? 'No payments found matching your search' : 'No payments found'}
                   </td>
                 </tr>
@@ -166,40 +250,107 @@ const PaymentList = ({ onEdit, onDelete }) => {
                     textColor = '#93c5fd'; // Blue
                   }
                   
+                  const isExpanded = expandedPayments.has(payment.id);
+                  const logs = paymentLogs[payment.uniqueID] || [];
+                  
                   return (
-                    <tr key={payment.id}>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.uniqueID || payment.id}</td>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.time}</td>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.userid}</td>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.realm}</td>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.amount}</td>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.price}</td>
-                      <td style={textColor ? { color: textColor } : {}}>
-                        {payment.gheymat ? (
-                          <>
-                            {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
-                            {payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial'}
-                          </>
-                        ) : ''}
-                      </td>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.paymentDuration}</td>
-                      <td style={textColor ? { color: textColor } : {}}>{formatTimeLeft(payment.timeLeftToPay)}</td>
-                      <td style={textColor ? { color: textColor } : {}}>{payment.admin}</td>
-                      <td>
-                        <button
-                          className="btn-small btn-secondary"
-                          onClick={() => onEdit && onEdit(payment)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn-small btn-danger"
-                          onClick={() => handleDelete(payment.id)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={payment.id}>
+                      <tr>
+                        <td>
+                          <button
+                            onClick={() => togglePaymentExpansion(payment.id, payment.uniqueID)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              padding: '4px 8px'
+                            }}
+                            title="Toggle logs"
+                          >
+                            {isExpanded ? '▼' : '▶'}
+                          </button>
+                        </td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.uniqueID || payment.id}</td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.time}</td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.userid}</td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.realm}</td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.amount}</td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.price}</td>
+                        <td style={textColor ? { color: textColor } : {}}>
+                          {payment.gheymat ? (
+                            <>
+                              {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
+                              {payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial'}
+                            </>
+                          ) : ''}
+                        </td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.paymentDuration}</td>
+                        <td style={textColor ? { color: textColor } : {}}>{formatTimeLeft(payment.timeLeftToPay)}</td>
+                        <td style={textColor ? { color: textColor } : {}}>{payment.admin}</td>
+                        <td>
+                          <button
+                            className="btn-small btn-secondary"
+                            onClick={() => onEdit && onEdit(payment)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-small btn-danger"
+                            onClick={() => handleDelete(payment.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan="12" style={{ padding: '1rem', backgroundColor: '#f5f5f5' }}>
+                            <div style={{ marginLeft: '2rem' }}>
+                              <h4 style={{ marginBottom: '0.5rem', fontSize: '14px', fontWeight: 'bold' }}>Activity Log</h4>
+                              {logs.length === 0 ? (
+                                <div style={{ color: '#666', fontSize: '13px' }}>No logs available</div>
+                              ) : (
+                                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                  {logs.map((log, idx) => (
+                                    <div key={idx} style={{ 
+                                      marginBottom: '0.75rem', 
+                                      padding: '0.75rem', 
+                                      backgroundColor: '#fff', 
+                                      borderRadius: '4px',
+                                      borderLeft: `3px solid ${log.action === 'create' ? '#22c55e' : '#3b82f6'}`
+                                    }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                                          {log.action === 'create' ? 'Created' : 'Edited'}
+                                        </span>
+                                        <span style={{ fontSize: '12px', color: '#666' }}>
+                                          {log.timestamp} by {log.user}
+                                        </span>
+                                      </div>
+                                      {log.action === 'edit' && Object.keys(log.changes).length > 0 && (
+                                        <div style={{ fontSize: '12px' }}>
+                                          {Object.entries(log.changes).map(([field, change]) => (
+                                            <div key={field} style={{ marginTop: '0.25rem', color: '#555' }}>
+                                              <strong>{field}:</strong> {change.old || '(empty)'} → {change.new || '(empty)'}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {log.action === 'create' && (
+                                        <div style={{ fontSize: '12px', color: '#555' }}>
+                                          Payment created with initial values
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })
               )}

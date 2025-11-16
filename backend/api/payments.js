@@ -245,6 +245,18 @@ router.post('/', requireAuth, async (req, res) => {
       // Don't fail the request if webhook fails
     }
     
+    // Log payment creation
+    await sheets.addPaymentLog(uniqueID, 'create', adminName, {
+      paymentType,
+      paymentDuration,
+      realm,
+      amount,
+      price,
+      gheymat: finalGheymat,
+      note,
+      discordId
+    });
+    
     // Invalidate cache
     cache.invalidatePaymentList();
     
@@ -299,26 +311,108 @@ router.put('/:id', requireAuth, async (req, res) => {
     };
     
     const updateData = {};
+    const changes = {}; // Track changes for logging
     
     // Update only provided fields - use column index as key
-    if (req.body.time !== undefined) updateData[cols.time] = req.body.time;
-    if (req.body.userid !== undefined) updateData[cols.userid] = req.body.userid;
-    if (req.body.paymentDuration !== undefined) updateData[cols.paymentDuration] = req.body.paymentDuration;
-    if (req.body.realm !== undefined) updateData[cols.realm] = req.body.realm;
-    if (req.body.amount !== undefined) updateData[cols.amount] = req.body.amount;
-    if (req.body.price !== undefined) updateData[cols.price] = req.body.price;
-    if (req.body.note !== undefined) updateData[cols.note] = req.body.note;
-    if (req.body.gheymat !== undefined) updateData[cols.gheymat] = req.body.gheymat;
-    if (req.body.card !== undefined) updateData[cols.card] = req.body.card;
-    if (req.body.sheba !== undefined) updateData[cols.sheba] = req.body.sheba;
-    if (req.body.name !== undefined) updateData[cols.name] = req.body.name;
-    if (req.body.phone !== undefined) updateData[cols.phone] = req.body.phone;
-    if (req.body.wallet !== undefined) updateData[cols.wallet] = req.body.wallet;
-    if (req.body.admin !== undefined) updateData[cols.admin] = req.body.admin;
-    if (req.body.processed !== undefined) updateData[cols.processed] = req.body.processed;
+    if (req.body.time !== undefined) {
+      updateData[cols.time] = req.body.time;
+      if (req.body.time !== currentPayment.time) {
+        changes.time = { old: currentPayment.time, new: req.body.time };
+      }
+    }
+    if (req.body.userid !== undefined) {
+      updateData[cols.userid] = req.body.userid;
+      if (req.body.userid !== currentPayment.userid) {
+        changes.userid = { old: currentPayment.userid, new: req.body.userid };
+      }
+    }
+    if (req.body.paymentDuration !== undefined) {
+      updateData[cols.paymentDuration] = req.body.paymentDuration;
+      if (req.body.paymentDuration !== currentPayment.paymentDuration) {
+        changes.paymentDuration = { old: currentPayment.paymentDuration, new: req.body.paymentDuration };
+      }
+    }
+    if (req.body.realm !== undefined) {
+      updateData[cols.realm] = req.body.realm;
+      if (req.body.realm !== currentPayment.realm) {
+        changes.realm = { old: currentPayment.realm, new: req.body.realm };
+      }
+    }
+    if (req.body.amount !== undefined) {
+      updateData[cols.amount] = req.body.amount;
+      if (req.body.amount !== currentPayment.amount) {
+        changes.amount = { old: currentPayment.amount, new: req.body.amount };
+      }
+    }
+    if (req.body.price !== undefined) {
+      updateData[cols.price] = req.body.price;
+      if (req.body.price !== currentPayment.price) {
+        changes.price = { old: currentPayment.price, new: req.body.price };
+      }
+    }
+    if (req.body.note !== undefined) {
+      updateData[cols.note] = req.body.note;
+      if (req.body.note !== currentPayment.note) {
+        changes.note = { old: currentPayment.note, new: req.body.note };
+      }
+    }
+    if (req.body.gheymat !== undefined) {
+      updateData[cols.gheymat] = req.body.gheymat;
+      if (req.body.gheymat !== currentPayment.gheymat) {
+        changes.gheymat = { old: currentPayment.gheymat, new: req.body.gheymat };
+      }
+    }
+    if (req.body.card !== undefined) {
+      updateData[cols.card] = req.body.card;
+      if (req.body.card !== currentPayment.card) {
+        changes.card = { old: currentPayment.card, new: req.body.card };
+      }
+    }
+    if (req.body.sheba !== undefined) {
+      updateData[cols.sheba] = req.body.sheba;
+      if (req.body.sheba !== currentPayment.sheba) {
+        changes.sheba = { old: currentPayment.sheba, new: req.body.sheba };
+      }
+    }
+    if (req.body.name !== undefined) {
+      updateData[cols.name] = req.body.name;
+      if (req.body.name !== currentPayment.name) {
+        changes.name = { old: currentPayment.name, new: req.body.name };
+      }
+    }
+    if (req.body.phone !== undefined) {
+      updateData[cols.phone] = req.body.phone;
+      if (req.body.phone !== currentPayment.phone) {
+        changes.phone = { old: currentPayment.phone, new: req.body.phone };
+      }
+    }
+    if (req.body.wallet !== undefined) {
+      updateData[cols.wallet] = req.body.wallet;
+      if (req.body.wallet !== currentPayment.wallet) {
+        changes.wallet = { old: currentPayment.wallet, new: req.body.wallet };
+      }
+    }
+    if (req.body.admin !== undefined) {
+      updateData[cols.admin] = req.body.admin;
+      if (req.body.admin !== currentPayment.admin) {
+        changes.admin = { old: currentPayment.admin, new: req.body.admin };
+      }
+    }
+    if (req.body.processed !== undefined) {
+      updateData[cols.processed] = req.body.processed;
+      if (req.body.processed !== currentPayment.processed) {
+        changes.processed = { old: currentPayment.processed, new: req.body.processed };
+      }
+    }
     
     // Update using sheets service (will use raw API for Payment sheet)
     await sheets.updateRow(row, updateData, config.sheetNames.payment, rowIndex);
+    
+    // Log payment edit if there were changes
+    if (Object.keys(changes).length > 0) {
+      const updatedBy = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
+      await sheets.addPaymentLog(currentPayment.uniqueID, 'edit', updatedBy, changes);
+    }
     
     // Get updated payment data for webhook (include old values, especially oldPrice)
     const paymentDurationForCurrency = req.body.paymentDuration || currentPayment.paymentDuration;
@@ -354,6 +448,33 @@ router.put('/:id', requireAuth, async (req, res) => {
     res.json({ message: 'Payment updated successfully' });
   } catch (error) {
     console.error('Error updating payment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get payment logs
+router.get('/:id/logs', requireAuth, async (req, res) => {
+  try {
+    const rowIndex = parseInt(req.params.id) - 4;
+    const rows = await sheets.getRows(config.sheetNames.payment);
+    
+    if (rowIndex < 0 || rowIndex >= rows.length) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    const row = rows[rowIndex];
+    const cols = config.paymentSheetColumns;
+    const getValue = (colIndex) => {
+      const rawData = row._rawData || [];
+      return rawData[colIndex] || '';
+    };
+    
+    const uniqueID = getValue(cols.uniqueID);
+    const logs = await sheets.getPaymentLogs(uniqueID);
+    
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching payment logs:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

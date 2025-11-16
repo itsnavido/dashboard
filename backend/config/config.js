@@ -41,7 +41,8 @@ module.exports = {
     payment: "Payment",
     sellerInfo: "Seller Info",
     info: "Info",
-    users: "Users"
+    users: "Users",
+    paymentLogs: "Payment Logs"
   },
 
   // Column mappings for Payment sheet (0-indexed)
