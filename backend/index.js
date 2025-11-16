@@ -75,6 +75,18 @@ app.use((req, res, next) => {
   if (req.session && !req.session.passport) {
     req.session.passport = {};
   }
+  
+  // Store original end function to ensure session is saved
+  const originalEnd = res.end;
+  res.end = function(...args) {
+    // If session has passport data, ensure it's saved by reassigning (triggers cookie-session to save)
+    if (req.session && req.session.passport && Object.keys(req.session.passport).length > 0) {
+      // Reassign to trigger cookie-session's change detection
+      req.session = { ...req.session };
+    }
+    originalEnd.apply(res, args);
+  };
+  
   next();
 });
 

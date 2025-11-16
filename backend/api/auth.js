@@ -146,14 +146,15 @@ router.get('/discord/callback', (req, res, next) => {
       console.log('[Auth] Session after login:', {
         hasSession: !!req.session,
         hasPassport: !!req.session?.passport,
-        passportUser: req.session?.passport?.user ? 'present' : 'missing'
+        passportUser: req.session?.passport?.user ? 'present' : 'missing',
+        passportKeys: req.session?.passport ? Object.keys(req.session.passport) : []
       });
       
-      // For cookie-session, we need to ensure the session is saved
-      // The session is automatically saved at the end of the request,
-      // but we can explicitly mark it as modified to ensure it's saved
+      // For cookie-session, we need to explicitly trigger a save by reassigning the session
+      // This ensures nested changes (like req.session.passport.user) are detected
       if (req.session) {
-        req.session = req.session || {};
+        // Create a new object to trigger cookie-session's change detection
+        req.session = JSON.parse(JSON.stringify(req.session));
       }
       
       res.redirect(frontendUrl);
