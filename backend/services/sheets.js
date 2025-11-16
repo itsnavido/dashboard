@@ -22,11 +22,82 @@ function getServiceAccount() {
   // Option 1: Read from environment variable (preferred - for production/Vercel)
   if (serviceAccountJson && serviceAccountJson.length > 0) {
     try {
-      // Handle escaped newlines that might be in Vercel environment variables
-      const cleanedJson = serviceAccountJson.replace(/\\n/g, '\n');
+      // Handle various newline formats that might be in Vercel environment variables
+      // 1. Replace escaped newlines (\n) with actual newlines
+      // 2. Handle cases where newlines might already be in the string
+      let cleanedJson = serviceAccountJson;
+      
+      // The issue: When JSON is pasted into Vercel env vars, the private_key field
+      // may contain actual newlines instead of escaped \n, which breaks JSON parsing.
+      // We need to fix control characters within JSON string values.
+      
+      // Strategy: Use a state machine to find all string values and fix control chars
+      let fixedJson = '';
+      let inString = false;
+      let inEscape = false;
+      
+      for (let i = 0; i < cleanedJson.length; i++) {
+        const char = cleanedJson[i];
+        const nextChar = cleanedJson[i + 1];
+        
+        if (inEscape) {
+          // We're in an escape sequence, just copy it
+          fixedJson += char;
+          inEscape = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          // Start of escape sequence
+          fixedJson += char;
+          inEscape = true;
+          continue;
+        }
+        
+        if (char === '"' && !inEscape) {
+          // Toggle string state
+          inString = !inString;
+          fixedJson += char;
+          continue;
+        }
+        
+        if (inString) {
+          // We're inside a string value
+          // Replace control characters with their escaped equivalents
+          if (char === '\n') {
+            fixedJson += '\\n';
+          } else if (char === '\r') {
+            // Handle \r\n as \n, standalone \r as \n
+            if (nextChar === '\n') {
+              fixedJson += '\\n';
+              i++; // Skip the \n
+            } else {
+              fixedJson += '\\n';
+            }
+          } else if (char === '\t') {
+            fixedJson += '\\t';
+          } else if (char.charCodeAt(0) < 32) {
+            // Other control characters
+            fixedJson += `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`;
+          } else {
+            fixedJson += char;
+          }
+        } else {
+          // Outside string, just copy
+          fixedJson += char;
+        }
+      }
+      
+      cleanedJson = fixedJson;
+      
+      // Now handle escaped newlines that might already be in the string
+      // Replace \\n (double-escaped) with \n (single-escaped)
+      cleanedJson = cleanedJson.replace(/\\\\n/g, '\\n');
+      
+      // Try parsing
       serviceAccount = JSON.parse(cleanedJson);
     } catch (error) {
-      throw new Error(`Invalid GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON. Must be valid JSON string. Error: ${error.message}`);
+      throw new Error(`Invalid GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON. Must be valid JSON string. Error: ${error.message}. Hint: Make sure newlines in private_key are escaped as \\n`);
     }
   }
   // Option 2: Read from JSON file (fallback for local development)
