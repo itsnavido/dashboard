@@ -143,13 +143,20 @@ router.get('/discord/callback', (req, res, next) => {
         return res.redirect(`${frontendUrl}/login?error=auth_failed`);
       }
       console.log('[Auth] Successful login for user:', user.id);
-      // Ensure session is saved (cookie-session saves automatically, but we can force it)
-      req.session.save((saveErr) => {
-        if (saveErr) {
-          console.error('[Auth] Session save error:', saveErr);
-        }
-        res.redirect(frontendUrl);
+      console.log('[Auth] Session after login:', {
+        hasSession: !!req.session,
+        hasPassport: !!req.session?.passport,
+        passportUser: req.session?.passport?.user ? 'present' : 'missing'
       });
+      
+      // For cookie-session, we need to ensure the session is saved
+      // The session is automatically saved at the end of the request,
+      // but we can explicitly mark it as modified to ensure it's saved
+      if (req.session) {
+        req.session = req.session || {};
+      }
+      
+      res.redirect(frontendUrl);
     });
   })(req, res, next);
 });
@@ -169,9 +176,12 @@ router.get('/me', (req, res) => {
   // Debug logging
   console.log('[Auth] /me check:', {
     hasSession: !!req.session,
+    sessionKeys: req.session ? Object.keys(req.session) : [],
     hasPassport: !!req.session?.passport,
+    passportKeys: req.session?.passport ? Object.keys(req.session.passport) : [],
     hasUser: !!req.user,
-    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+    cookies: req.headers.cookie ? 'present' : 'missing'
   });
   
   if (req.isAuthenticated && req.isAuthenticated()) {
