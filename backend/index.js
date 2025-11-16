@@ -68,23 +68,13 @@ app.use((req, res, next) => {
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middleware to ensure session is saved after Passport writes to it
-// This is needed for cookie-session to properly persist Passport data
+// Middleware to ensure Passport session data is properly saved with cookie-session
+// cookie-session saves automatically, but we need to ensure Passport's data structure is maintained
 app.use((req, res, next) => {
-  // Store original end function
-  const originalEnd = res.end;
-  
-  // Override end to ensure session is saved
-  res.end = function(...args) {
-    // If session was modified (e.g., by Passport), ensure it's saved
-    if (req.session && Object.keys(req.session).length > 0) {
-      // cookie-session automatically saves, but we ensure it's marked as modified
-      // by touching the session object
-      req.session = { ...req.session };
-    }
-    originalEnd.apply(res, args);
-  };
-  
+  // Ensure passport property exists on session for Passport to write to
+  if (req.session && !req.session.passport) {
+    req.session.passport = {};
+  }
   next();
 });
 
