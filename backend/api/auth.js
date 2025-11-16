@@ -190,20 +190,28 @@ router.post('/logout', (req, res) => {
           return res.status(400).json({ error: 'Username and password are required' });
         }
         
+        console.log('[Auth] Attempting username/password login for username:', username);
+        
         // Get user by username
         const user = await userService.getUserByUsername(username);
         
         if (!user) {
+          console.log('[Auth] User not found for username:', username);
           return res.status(401).json({ error: 'Invalid username or password' });
         }
         
+        console.log('[Auth] User found:', user.discordId, 'Has password:', !!user.password);
+        
         // Check if user has a password set
         if (!user.password || user.password === '') {
+          console.log('[Auth] User has no password set');
           return res.status(401).json({ error: 'Password login not available for this user. Please use Discord login or set a password first.' });
         }
         
         // Verify password
         const isValidPassword = await userService.verifyPassword(password, user.password);
+        
+        console.log('[Auth] Password verification result:', isValidPassword);
         
         if (!isValidPassword) {
           return res.status(401).json({ error: 'Invalid username or password' });

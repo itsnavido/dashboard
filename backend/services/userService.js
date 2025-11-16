@@ -172,21 +172,21 @@ async function getUserByUsername(username) {
   try {
     const rows = await sheets.getRows(config.sheetNames.users);
     const row = rows.find(r => {
-      const rawData = r._rawData || [];
-      const rowUsername = rawData[5] || r.get('username') || '';
-      return rowUsername.toLowerCase() === username.toLowerCase();
+      // Users sheet uses header-based access, not raw data
+      const rowUsername = r.get('username') || r.username || '';
+      return rowUsername && rowUsername.toString().toLowerCase() === username.toLowerCase();
     });
     
     if (row) {
-      const rawData = row._rawData || [];
+      // Users sheet uses header-based access via google-spreadsheet
       return {
-        discordId: rawData[0] || row.get('discordId') || '',
-        role: rawData[1] || row.get('role') || '',
-        createdAt: rawData[2] || row.get('createdAt') || '',
-        updatedAt: rawData[3] || row.get('updatedAt') || '',
-        nickname: rawData[4] || row.get('nickname') || '',
-        username: rawData[5] || row.get('username') || '',
-        password: rawData[6] || row.get('password') || '' // Hashed password
+        discordId: row.get('discordId') || row.discordId || '',
+        role: row.get('role') || row.role || '',
+        createdAt: row.get('createdAt') || row.createdAt || '',
+        updatedAt: row.get('updatedAt') || row.updatedAt || '',
+        nickname: row.get('nickname') || row.nickname || '',
+        username: row.get('username') || row.username || '',
+        password: row.get('password') || row.password || '' // Hashed password
       };
     }
     
