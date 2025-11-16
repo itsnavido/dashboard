@@ -2,6 +2,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { formatDate, formatNumber } from '../utils';
 
+// Format time left in hours
+const formatTimeLeft = (timeLeftStr) => {
+  if (!timeLeftStr || timeLeftStr === '') return '';
+  
+  const timeLeft = parseFloat(timeLeftStr.toString().replace(/,/g, ''));
+  if (isNaN(timeLeft)) return timeLeftStr;
+  
+  // Format with 1 decimal place if needed, otherwise show as integer
+  const formatted = timeLeft % 1 === 0 
+    ? timeLeft.toString() 
+    : timeLeft.toFixed(1);
+  
+  return `${formatted}h`;
+};
+
 const PaymentList = ({ onEdit, onDelete }) => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,24 +157,24 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                   payment.paymentDuration.toString().toLowerCase().includes('lahzei');
                   
                   // Determine row font color with priority: purple > green > blue
-                  let rowStyle = {};
+                  let textColor = '';
                   if (isNegative) {
-                    rowStyle.color = '#c084fc'; // Purple (highest priority)
+                    textColor = '#c084fc'; // Purple (highest priority)
                   } else if (isColumnQTrue) {
-                    rowStyle.color = '#86efac'; // Green
+                    textColor = '#86efac'; // Green
                   } else if (isLahzei) {
-                    rowStyle.color = '#93c5fd'; // Blue
+                    textColor = '#93c5fd'; // Blue
                   }
                   
                   return (
-                    <tr key={payment.id} style={rowStyle}>
-                      <td>{payment.uniqueID || payment.id}</td>
-                      <td>{payment.time}</td>
-                      <td>{payment.userid}</td>
-                      <td>{payment.realm}</td>
-                      <td>{payment.amount}</td>
-                      <td>{payment.price}</td>
-                      <td>
+                    <tr key={payment.id}>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.uniqueID || payment.id}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.time}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.userid}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.realm}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.amount}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.price}</td>
+                      <td style={textColor ? { color: textColor } : {}}>
                         {payment.gheymat ? (
                           <>
                             {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
@@ -167,9 +182,9 @@ const PaymentList = ({ onEdit, onDelete }) => {
                           </>
                         ) : ''}
                       </td>
-                      <td>{payment.paymentDuration}</td>
-                      <td>{payment.timeLeftToPay || ''}</td>
-                      <td>{payment.admin}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.paymentDuration}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{formatTimeLeft(payment.timeLeftToPay)}</td>
+                      <td style={textColor ? { color: textColor } : {}}>{payment.admin}</td>
                       <td>
                         <button
                           className="btn-small btn-secondary"
