@@ -4,6 +4,8 @@ const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const userService = require('../services/userService');
 const config = require('../config/config');
+const { generateToken } = require('../utils/jwt');
+const { verifyJWT } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -78,6 +80,8 @@ if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
   }));
 }
 
+// Note: We're not using Passport sessions anymore, but passport-discord still needs these
+// They won't be called since we're not using passport.session()
 passport.serializeUser((user, done) => {
   done(null, user);
 });
@@ -95,6 +99,17 @@ function getFrontendUrl(req) {
   const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
   return `${protocol}://${host}`;
+}
+
+// Helper function to set JWT cookie
+function setJWTCookie(res, token) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: isProduction, // Only send over HTTPS in production
+    sameSite: 'lax', // Single domain deployment
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  });
 }
 
 // Discord OAuth login
@@ -127,7 +142,7 @@ router.get('/discord/callback', (req, res, next) => {
   }
   passport.authenticate('discord', { 
     failureRedirect: `${frontendUrl}/login?error=auth_failed`,
-    session: true
+    session: false // Don't use Passport sessions
   }, (err, user, info) => {
     if (err) {
       console.error('[Auth] Authentication error:', err);
@@ -137,76 +152,39 @@ router.get('/discord/callback', (req, res, next) => {
       console.log('[Auth] Authentication failed:', info?.message || 'Unknown error');
       return res.redirect(`${frontendUrl}/login?error=auth_failed&message=${encodeURIComponent(info?.message || 'Authentication failed')}`);
     }
-    req.logIn(user, (err) => {
-      if (err) {
-        console.error('[Auth] Login error:', err);
-        return res.redirect(`${frontendUrl}/login?error=auth_failed`);
-      }
+    
+    // Generate JWT token instead of using Passport sessions
+    try {
+      const token = generateToken(user);
       console.log('[Auth] Successful login for user:', user.id);
       
-      // Calculate session size to check if it exceeds cookie limits (4KB default for cookie-session)
-      const sessionData = req.session ? JSON.stringify(req.session) : '';
-      const sessionSize = sessionData.length;
-      console.log('[Auth] Session after login:', {
-        hasSession: !!req.session,
-        hasPassport: !!req.session?.passport,
-        passportUser: req.session?.passport?.user ? 'present' : 'missing',
-        passportKeys: req.session?.passport ? Object.keys(req.session.passport) : [],
-        sessionSize: sessionSize,
-        sessionSizeKB: (sessionSize / 1024).toFixed(2) + ' KB'
-      });
+      // Set JWT as HTTP-only cookie
+      setJWTCookie(res, token);
       
-      // Check if session is too large (cookie-session has ~4KB limit)
-      if (sessionSize > 4000) {
-        console.warn('[Auth] WARNING: Session size exceeds cookie limit! Size:', sessionSize, 'bytes');
-      }
-      
-      // For cookie-session, we need to explicitly trigger change detection
-      // cookie-session only detects changes to direct properties, not nested ones
-      // So we set flags to force cookie-session to save the session
-      if (req.session) {
-        // Set multiple properties to ensure change is detected
-        // This triggers cookie-session's Proxy to mark the session as modified
-        req.session._lastModified = Date.now();
-        req.session.isChanged = true;
-        req.session._saved = true;
-        
-        // Verify the session has passport data before redirecting
-        if (!req.session.passport || !req.session.passport.user) {
-          console.error('[Auth] ERROR: Session passport data missing after login!');
-        }
-      }
-      
-      // Redirect - cookie-session will save the session automatically when response is sent
+      // Redirect to frontend
       res.redirect(frontendUrl);
-    });
+    } catch (error) {
+      console.error('[Auth] Error generating JWT token:', error);
+      return res.redirect(`${frontendUrl}/login?error=auth_failed`);
+    }
   })(req, res, next);
 });
 
 // Logout
 router.post('/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
-    }
-    res.json({ message: 'Logged out successfully' });
+  // Clear JWT cookie
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
   });
+  res.json({ message: 'Logged out successfully' });
 });
 
 // Get current user
-router.get('/me', (req, res) => {
-  // Debug logging
-  console.log('[Auth] /me check:', {
-    hasSession: !!req.session,
-    sessionKeys: req.session ? Object.keys(req.session) : [],
-    hasPassport: !!req.session?.passport,
-    passportKeys: req.session?.passport ? Object.keys(req.session.passport) : [],
-    hasUser: !!req.user,
-    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
-    cookies: req.headers.cookie ? 'present' : 'missing'
-  });
-  
-  if (req.isAuthenticated && req.isAuthenticated()) {
+// Apply JWT verification middleware first
+router.get('/me', verifyJWT, (req, res) => {
+  if (req.user) {
     res.json(req.user);
   } else {
     res.status(401).json({ error: 'Not authenticated' });
