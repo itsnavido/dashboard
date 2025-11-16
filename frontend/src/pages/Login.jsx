@@ -59,8 +59,8 @@ const Login = () => {
           <button
             className={`btn-small ${loginMethod === 'discord' ? 'active' : ''}`}
             onClick={() => {
-              setLoginMethod('discord');
               setError('');
+              handleDiscordLogin();
             }}
             style={{ flex: 1 }}
           >
@@ -91,16 +91,7 @@ const Login = () => {
           </div>
         )}
 
-        {loginMethod === 'discord' ? (
-          <>
-            <p style={{ marginBottom: '30px', color: '#666' }}>
-              Please login with your Discord account to continue
-            </p>
-            <button className="login-button" onClick={handleDiscordLogin}>
-              Login with Discord
-            </button>
-          </>
-        ) : (
+        {loginMethod === 'password' && (
           <form onSubmit={handlePasswordLogin} style={{ width: '100%' }}>
             <label htmlFor="username" style={{ display: 'block', marginBottom: '10px', textAlign: 'left' }}>
               Username:
