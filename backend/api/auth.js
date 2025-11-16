@@ -12,57 +12,69 @@ if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) {
   console.warn('Warning: DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET not set. Discord OAuth will not work.');
 }
 
+// Helper function to get callback URL from request (full URL)
+function getCallbackUrlFromRequest(req) {
+  if (process.env.DISCORD_CALLBACK_URL) {
+    return process.env.DISCORD_CALLBACK_URL;
+  }
+  // Auto-detect from request (for single deployment on same domain)
+  const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5000';
+  return `${protocol}://${host}/api/auth/discord/callback`;
+}
+
 // Configure Passport Discord strategy (only if credentials are available)
 if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
+  // Initialize with a placeholder - will be overridden per request
   passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: process.env.DISCORD_CALLBACK_URL || '/api/auth/discord/callback',
+    callbackURL: process.env.DISCORD_CALLBACK_URL || 'http://localhost:5000/api/auth/discord/callback',
     scope: ['identify']
   }, async (accessToken, refreshToken, profile, done) => {
-  try {
-    const discordId = profile.id;
-    console.log(`[Auth] Attempting login for Discord ID: ${discordId}`);
-    
-    // Check if user exists
-    let user = await userService.getUserByDiscordId(discordId);
-    
-    if (!user) {
-      console.log(`[Auth] User ${discordId} not found in database`);
+    try {
+      const discordId = profile.id;
+      console.log(`[Auth] Attempting login for Discord ID: ${discordId}`);
       
-      // Check if this is a default admin
-      if (config.defaultAdmins.includes(discordId)) {
-        console.log(`[Auth] User ${discordId} is in defaultAdmins, creating as Admin`);
-        // Create as admin
-        user = await userService.createUser(discordId, 'Admin');
-      } else {
-        // Check if Users sheet is empty (first-time setup)
-        const allUsers = await userService.getAllUsers();
-        if (allUsers.length === 0) {
-          console.log(`[Auth] No users in database. Creating first user as Admin: ${discordId}`);
-          // First user becomes admin
+      // Check if user exists
+      let user = await userService.getUserByDiscordId(discordId);
+      
+      if (!user) {
+        console.log(`[Auth] User ${discordId} not found in database`);
+        
+        // Check if this is a default admin
+        if (config.defaultAdmins.includes(discordId)) {
+          console.log(`[Auth] User ${discordId} is in defaultAdmins, creating as Admin`);
+          // Create as admin
           user = await userService.createUser(discordId, 'Admin');
         } else {
-          console.log(`[Auth] User ${discordId} not authorized. Not in defaultAdmins and Users sheet is not empty.`);
-          // Deny access if user doesn't exist
-          return done(null, false, { message: 'User not authorized. Please contact an administrator to add your Discord ID.' });
+          // Check if Users sheet is empty (first-time setup)
+          const allUsers = await userService.getAllUsers();
+          if (allUsers.length === 0) {
+            console.log(`[Auth] No users in database. Creating first user as Admin: ${discordId}`);
+            // First user becomes admin
+            user = await userService.createUser(discordId, 'Admin');
+          } else {
+            console.log(`[Auth] User ${discordId} not authorized. Not in defaultAdmins and Users sheet is not empty.`);
+            // Deny access if user doesn't exist
+            return done(null, false, { message: 'User not authorized. Please contact an administrator to add your Discord ID.' });
+          }
         }
+      } else {
+        console.log(`[Auth] User ${discordId} found with role: ${user.role}`);
       }
-    } else {
-      console.log(`[Auth] User ${discordId} found with role: ${user.role}`);
+      
+      return done(null, {
+        id: discordId,
+        username: profile.username,
+        discriminator: profile.discriminator,
+        avatar: profile.avatar,
+        role: user.role
+      });
+    } catch (error) {
+      console.error('[Auth] Error during authentication:', error);
+      return done(error, null);
     }
-    
-    return done(null, {
-      id: discordId,
-      username: profile.username,
-      discriminator: profile.discriminator,
-      avatar: profile.avatar,
-      role: user.role
-    });
-  } catch (error) {
-    console.error('[Auth] Error during authentication:', error);
-    return done(error, null);
-  }
   }));
 }
 
@@ -92,6 +104,17 @@ router.get('/discord', (req, res, next) => {
     // Redirect to frontend with error instead of JSON response
     return res.redirect(`${frontendUrl}/login?error=oauth_not_configured`);
   }
+  
+  // Get the correct callback URL for this request (full URL)
+  const callbackUrl = getCallbackUrlFromRequest(req);
+  
+  // Override the strategy's callbackURL for this request
+  const discordStrategy = passport._strategies.discord;
+  if (discordStrategy && discordStrategy._oauth2) {
+    // Update the OAuth2 redirect URI
+    discordStrategy._oauth2._redirectURI = callbackUrl;
+  }
+  
   passport.authenticate('discord')(req, res, next);
 });
 
