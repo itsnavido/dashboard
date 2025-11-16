@@ -15,8 +15,10 @@ const usersRoutes = require('./api/users');
 const app = express();
 
 // Middleware
+// For single deployment, allow same origin. For separate deployments, use FRONTEND_URL
+const corsOrigin = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? true : 'http://localhost:3000');
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: corsOrigin,
   credentials: true
 }));
 

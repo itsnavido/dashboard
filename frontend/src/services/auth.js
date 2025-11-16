@@ -2,7 +2,8 @@
 import api from './api';
 
 // Get API URL from environment or use default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// For single deployment (same domain), use relative path. For separate deployments, use full URL
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000');
 
 export const authService = {
   // Get current user

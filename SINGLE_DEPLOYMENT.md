@@ -49,24 +49,17 @@ Add ALL environment variables in the Vercel Dashboard:
 - `DISCORD_CALLBACK_URL` (e.g., `https://yourdomain.vercel.app/api/auth/discord/callback`)
 - `DISCORD_WEBHOOK_URL`
 - `SESSION_SECRET`
-- `FRONTEND_URL` (e.g., `https://yourdomain.vercel.app`)
+- `FRONTEND_URL` (optional - will auto-detect from request if not set. Set to `https://yourdomain.vercel.app` if you want to be explicit)
 - `NODE_ENV` = `production`
 
 **Frontend Variables:**
-- `VITE_API_URL` = `https://yourdomain.vercel.app` (or just `/api` for same origin)
+- `VITE_API_URL` = `/api` (optional - defaults to `/api` for same origin in production, or set to full URL if needed)
 
-### 4. Update Frontend API URL
+### 4. Frontend API URL (Already Configured)
 
-Since both are on the same domain, you can simplify the frontend API calls:
+The frontend is already configured to use relative paths (`/api`) in production when `VITE_API_URL` is not set. This works perfectly for single deployment since both frontend and backend are on the same domain.
 
-**Option 1: Use relative paths (Recommended)**
-Update `frontend/src/services/api.js`:
-```javascript
-const API_URL = import.meta.env.VITE_API_URL || '/api';
-```
-
-**Option 2: Use full URL**
-Keep as is, but set `VITE_API_URL` to your Vercel domain.
+**No changes needed** - the code automatically uses `/api` in production, which will work with your single deployment setup.
 
 ### 5. Deploy
 

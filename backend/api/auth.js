@@ -74,10 +74,21 @@ passport.deserializeUser((user, done) => {
   done(null, user);
 });
 
+// Helper function to get frontend URL (auto-detect from request if not set)
+function getFrontendUrl(req) {
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL;
+  }
+  // Auto-detect from request (for single deployment on same domain)
+  const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+  return `${protocol}://${host}`;
+}
+
 // Discord OAuth login
 router.get('/discord', (req, res, next) => {
   if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = getFrontendUrl(req);
     // Redirect to frontend with error instead of JSON response
     return res.redirect(`${frontendUrl}/login?error=oauth_not_configured`);
   }
@@ -86,28 +97,30 @@ router.get('/discord', (req, res, next) => {
 
 // Discord OAuth callback
 router.get('/discord/callback', (req, res, next) => {
+  const frontendUrl = getFrontendUrl(req);
+  
   if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) {
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_not_configured`);
+    return res.redirect(`${frontendUrl}/login?error=oauth_not_configured`);
   }
   passport.authenticate('discord', { 
-    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`,
+    failureRedirect: `${frontendUrl}/login?error=auth_failed`,
     session: true
   }, (err, user, info) => {
     if (err) {
       console.error('[Auth] Authentication error:', err);
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`);
+      return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
     if (!user) {
       console.log('[Auth] Authentication failed:', info?.message || 'Unknown error');
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed&message=${encodeURIComponent(info?.message || 'Authentication failed')}`);
+      return res.redirect(`${frontendUrl}/login?error=auth_failed&message=${encodeURIComponent(info?.message || 'Authentication failed')}`);
     }
     req.logIn(user, (err) => {
       if (err) {
         console.error('[Auth] Login error:', err);
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`);
+        return res.redirect(`${frontendUrl}/login?error=auth_failed`);
       }
       console.log('[Auth] Successful login for user:', user.id);
-      res.redirect(process.env.FRONTEND_URL || 'http://localhost:3000');
+      res.redirect(frontendUrl);
     });
   })(req, res, next);
 });
