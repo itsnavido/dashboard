@@ -280,7 +280,30 @@ const PaymentForm = ({ onSuccess }) => {
 
       const response = await api.post('/payments', paymentData);
       
-      setMessage(`Payment created successfully! ID: ${response.data.uniqueID}`);
+      // Create detailed success message
+      const paymentDurationLabel = paymentDurationOptions.find(opt => opt.value === formData.paymentTime)?.label || formData.paymentTime;
+      const realmLabel = formData.realm === 'Custom' ? formData.customRealm : (realmOptions.find(opt => opt.value === formData.realm)?.label || formData.realm);
+      const paymentTypeLabel = formData.paymentType === 'Gold' ? 'فروش گلد' : 'پرداخت نقدی';
+      
+      const isToman = formData.paymentTime?.toLowerCase().includes('toman');
+      const currencyLabel = isToman ? '$' : (formData.paymentType === 'Naghdi' ? 'Rial' : 'Rial');
+      const priceCurrencyLabel = isToman ? '$' : 'Toman';
+      
+      const detailedMessage = `پرداخت با موفقیت ثبت شد!\n\n` +
+        `شناسه: ${response.data.uniqueID}\n` +
+        `نوع پرداخت: ${paymentTypeLabel}\n` +
+        `Discord ID: ${formData.discordId.replace(/\s/g, '')}\n` +
+        `Realm: ${realmLabel}\n` +
+        (formData.amount ? `مقدار: ${formData.amount} K\n` : '') +
+        (formData.price ? `قیمت: ${formData.price} ${priceCurrencyLabel}\n` : '') +
+        (formData.gheymat ? `قیمت (${currencyLabel}): ${formData.gheymat}\n` : '') +
+        (formData.paymentTime ? `مدت زمان: ${paymentDurationLabel}\n` : '') +
+        (formData.note ? `یادداشت: ${formData.note}\n` : '') +
+        (sellerInfo.name ? `نام: ${sellerInfo.name}\n` : '') +
+        (sellerInfo.shomareKart ? `شماره کارت: ${sellerInfo.shomareKart}\n` : '') +
+        (sellerInfo.shomareSheba ? `شماره شبا: ${sellerInfo.shomareSheba}\n` : '');
+      
+      setMessage(detailedMessage);
       setFormData({
         discordId: '',
         paymentType: '',
@@ -448,7 +471,9 @@ const PaymentForm = ({ onSuccess }) => {
                 step="any"
               />
 
-              <label htmlFor="price">قیمت (Toman):</label>
+              <label htmlFor="price">
+                قیمت ({formData.paymentTime?.toLowerCase().includes('toman') ? '$' : 'Toman'}):
+              </label>
               <input
                 type="text"
                 id="price"
@@ -464,7 +489,9 @@ const PaymentForm = ({ onSuccess }) => {
 
           {showGheymat && (
             <>
-              <label htmlFor="gheymat">قیمت (Rial):</label>
+              <label htmlFor="gheymat">
+                قیمت ({formData.paymentTime?.toLowerCase().includes('toman') ? '$' : 'Rial'}):
+              </label>
               <input
                 type="text"
                 id="gheymat"
@@ -478,6 +505,11 @@ const PaymentForm = ({ onSuccess }) => {
                 readOnly={formData.paymentType === 'Gold'}
                 style={formData.paymentType === 'Gold' ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               />
+              {formData.paymentType === 'Naghdi' && (
+                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', marginBottom: '1rem' }}>
+                  equal toman
+                </div>
+              )}
             </>
           )}
 
@@ -491,7 +523,10 @@ const PaymentForm = ({ onSuccess }) => {
           />
 
           {message && (
-            <div className={message.includes('Error') ? 'error' : 'success'}>
+            <div 
+              className={message.includes('Error') ? 'error' : 'success'}
+              style={{ whiteSpace: 'pre-line' }}
+            >
               {message}
             </div>
           )}
