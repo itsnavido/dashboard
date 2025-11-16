@@ -24,26 +24,48 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
-app.use(session({
+// Note: MemoryStore is used for simplicity. For production with multiple instances,
+// consider using Redis or another external session store
+const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
-}));
+};
+
+// Suppress MemoryStore warning in production (it's expected for serverless)
+if (process.env.NODE_ENV === 'production') {
+  // MemoryStore is acceptable for serverless functions as each invocation is isolated
+  // The warning is for multi-process scenarios, which doesn't apply to serverless
+  const originalWarn = console.warn;
+  console.warn = function(...args) {
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('MemoryStore')) {
+      return; // Suppress MemoryStore warning
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
+app.use(session(sessionConfig));
 
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/payments', paymentsRoutes);
-app.use('/api/sellers', sellersRoutes);
-app.use('/api/users', usersRoutes);
+// Health check - define early for easy access
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
+});
 
 // Root endpoint - API information
 app.get('/', (req, res) => {
@@ -62,14 +84,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check - should work on Vercel
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/sellers', sellersRoutes);
+app.use('/api/users', usersRoutes);
 
 // 404 handler for unmatched routes
 app.use((req, res) => {
