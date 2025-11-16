@@ -45,6 +45,7 @@ router.get('/', requireAuth, async (req, res) => {
         uniqueID: getValue(cols.uniqueID),
         admin: getValue(cols.admin),
         processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
+        columnQ: getValue(cols.columnQ) === true || getValue(cols.columnQ) === 'TRUE' || getValue(cols.columnQ) === 'true',
         timeLeftToPay: getValue(cols.timeLeftToPay) || ''
       };
     });
@@ -93,6 +94,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       uniqueID: getValue(cols.uniqueID),
       admin: getValue(cols.admin),
       processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
+      columnQ: getValue(cols.columnQ) === true || getValue(cols.columnQ) === 'TRUE' || getValue(cols.columnQ) === 'true' || getValue(cols.columnQ) === true,
       timeLeftToPay: getValue(cols.timeLeftToPay) || ''
     };
     

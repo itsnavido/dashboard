@@ -45,7 +45,7 @@ module.exports = {
   },
 
   // Column mappings for Payment sheet (0-indexed)
-  // Headers: Timestamp, Discord ID, Payment Time, Amount, Price, #VALUE!, Gheymat, Realm, Shomare Kart, Shomare Sheba, Name, Shomare tamas, Note, ID, Admin, Ki Pay Kard, ..., Time Left to Pay (V)
+  // Headers: Timestamp, Discord ID, Payment Time, Amount, Price, #VALUE!, Gheymat, Realm, Shomare Kart, Shomare Sheba, Name, Shomare tamas, Note, ID, Admin, Ki Pay Kard, Column Q, ..., Time Left to Pay (V)
   paymentSheetColumns: {
     time: 0,              // Timestamp
     userid: 1,            // Discord ID
@@ -63,6 +63,7 @@ module.exports = {
     uniqueID: 13,         // ID
     admin: 14,            // Admin
     processed: 15,        // Ki Pay Kard (processed flag)
+    columnQ: 16,         // Column Q (boolean flag)
     timeLeftToPay: 21     // Time Left to Pay (Column V)
   },
 

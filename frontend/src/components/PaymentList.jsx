@@ -131,15 +131,22 @@ const PaymentList = ({ onEdit, onDelete }) => {
                   const isNegative = timeLeftStr.toString().trim().startsWith('-') || 
                                    (timeLeftStr && !isNaN(parseFloat(timeLeftStr)) && parseFloat(timeLeftStr) < 0);
                   
+                  // Check if column Q is TRUE
+                  const isColumnQTrue = payment.columnQ === true || 
+                                       payment.columnQ === 'TRUE' || 
+                                       payment.columnQ === 'true' ||
+                                       payment.columnQ === 'True';
+                  
                   // Check if duration contains "lahzei"
                   const isLahzei = payment.paymentDuration && 
                                   payment.paymentDuration.toString().toLowerCase().includes('lahzei');
                   
-                  // Determine row style: purple for negative, blue for lahzei
-                  // Purple takes precedence if both conditions are true
+                  // Determine row style with priority: purple > green > blue
                   let rowStyle = {};
                   if (isNegative) {
-                    rowStyle.backgroundColor = '#e1bee7'; // Purple
+                    rowStyle.backgroundColor = '#e1bee7'; // Purple (highest priority)
+                  } else if (isColumnQTrue) {
+                    rowStyle.backgroundColor = '#c8e6c9'; // Green
                   } else if (isLahzei) {
                     rowStyle.backgroundColor = '#bbdefb'; // Blue
                   }
