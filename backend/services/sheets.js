@@ -315,10 +315,12 @@ async function addPaymentRowRaw(rowData) {
 
 /**
  * Find row by value in a specific column
+ * Returns the row with _rowIndex property (0-indexed from data rows, excluding header)
  */
 async function findRowByValue(sheetName, columnIndex, value) {
   const rows = await getRows(sheetName);
-  return rows.find(row => {
+  let foundIndex = -1;
+  const foundRow = rows.find((row, index) => {
     let cellValue;
     
     // For Users sheet (google-spreadsheet), use header-based access
@@ -337,8 +339,18 @@ async function findRowByValue(sheetName, columnIndex, value) {
       cellValue = rawData[columnIndex];
     }
     
-    return cellValue && String(cellValue).trim() === String(value).trim();
+    const matches = cellValue && String(cellValue).trim() === String(value).trim();
+    if (matches) {
+      foundIndex = index;
+    }
+    return matches;
   });
+  
+  if (foundRow) {
+    foundRow._rowIndex = foundIndex; // Store the index for raw API updates
+  }
+  
+  return foundRow;
 }
 
 /**
@@ -370,6 +382,86 @@ async function updateRow(row, data, sheetName = null, rowIndex = null) {
   // Only call save if the method exists (google-spreadsheet rows have save method)
   if (typeof row.save === 'function') {
     await row.save();
+  }
+}
+
+/**
+ * Update a Users row using raw Google Sheets API
+ */
+async function updateUserRowRaw(rowIndex, updateData) {
+  const client = await initSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+  const sheetName = config.sheetNames.users;
+
+  try {
+    // Get the sheet
+    const doc = await initSheets();
+    const sheet = doc.sheetsByTitle[sheetName];
+    if (!sheet) {
+      throw new Error(`Sheet "${sheetName}" not found`);
+    }
+
+    // Convert column names to indices
+    // Users sheet: discordId (A=0), role (B=1), createdAt (C=2), updatedAt (D=3), nickname (E=4), username (F=5), password (G=6)
+    const columnMap = {
+      'discordId': 0,
+      'role': 1,
+      'createdAt': 2,
+      'updatedAt': 3,
+      'nickname': 4,
+      'username': 5,
+      'password': 6
+    };
+
+    const columnToLetter = (col) => {
+      if (col < 0 || col > 6) {
+        console.warn(`Column index ${col} is out of range (0-6)`);
+        return null;
+      }
+      // A=0, B=1, ..., G=6
+      return String.fromCharCode(65 + col);
+    };
+
+    // Build update requests
+    const updateRequests = Object.keys(updateData)
+      .filter(key => columnMap.hasOwnProperty(key))
+      .map(key => {
+        const col = columnMap[key];
+        const actualRow = rowIndex + 2; // Row 1 is header, +1 for 1-indexed, so rowIndex + 2
+        const columnLetter = columnToLetter(col);
+        
+        if (!columnLetter) {
+          console.warn(`Invalid column: ${key}, skipping update`);
+          return null;
+        }
+        
+        const range = `${sheetName}!${columnLetter}${actualRow}`;
+        
+        return {
+          range: range,
+          values: [[updateData[key]]]
+        };
+      })
+      .filter(req => req !== null);
+
+    if (updateRequests.length === 0) {
+      console.warn('No valid update requests to process');
+      return { success: true };
+    }
+
+    // Update cells using batchUpdate
+    await client.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      resource: {
+        valueInputOption: 'USER_ENTERED',
+        data: updateRequests
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating User row with raw API:', error);
+    throw error;
   }
 }
 
@@ -537,6 +629,7 @@ module.exports = {
   addRow,
   findRowByValue,
   updateRow,
+  updateUserRowRaw,
   deleteRow,
   getCellValue,
   setCellValue

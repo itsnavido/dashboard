@@ -261,52 +261,35 @@ async function updateUserCredentials(discordId, username, password) {
       throw new Error('User not found');
     }
     
-    console.log('[UserService] Row found, row type:', typeof row, 'has save:', typeof row.save);
-    console.log('[UserService] Row has get method:', typeof row.get === 'function');
-    
-    // For Users sheet, use header names since it uses google-spreadsheet
-    // google-spreadsheet uses set() method or direct property assignment
-    // Update updatedAt always
-    const updatedAtValue = new Date().toISOString();
-    
-    // google-spreadsheet uses direct property assignment
-    // Assign values directly to row properties matching header names
-    row.updatedAt = updatedAtValue;
-    if (username !== undefined && username !== null) {
-      row.username = username;
+    const rowIndex = row._rowIndex;
+    if (rowIndex === undefined || rowIndex === null) {
+      console.error('[UserService] Row index not found');
+      throw new Error('Row index not available');
     }
+    
+    console.log('[UserService] Row found at index:', rowIndex);
+    
+    // Prepare update data for raw API
+    const updatedAtValue = new Date().toISOString();
+    const updateData = {
+      updatedAt: updatedAtValue
+    };
+    
+    if (username !== undefined && username !== null) {
+      updateData.username = username;
+    }
+    
     if (password !== undefined && password !== null && password !== '') {
       const hashedPassword = await hashPassword(password);
-      row.password = hashedPassword;
+      updateData.password = hashedPassword;
     }
     
-    console.log('[UserService] Set updatedAt to:', updatedAtValue);
-    if (username !== undefined && username !== null) {
-      console.log('[UserService] Set username to:', username);
-    }
-    if (password !== undefined && password !== null && password !== '') {
-      console.log('[UserService] Set password hash');
-    }
+    console.log('[UserService] Update data:', Object.keys(updateData));
     
-    // Verify values are set before saving
-    const checkUsername = row.get ? row.get('username') : row.username;
-    const checkPassword = row.get ? row.get('password') : row.password;
-    console.log('[UserService] Before save - username:', checkUsername, 'password set:', !!checkPassword);
+    // Use raw Google Sheets API to update (more reliable than google-spreadsheet save)
+    await sheets.updateUserRowRaw(rowIndex, updateData);
     
-    // Save the row
-    if (typeof row.save === 'function') {
-      await row.save();
-      console.log('[UserService] Row saved successfully');
-      
-      // Verify after save - need to reload to see persisted values
-      const checkUsernameAfter = row.get ? row.get('username') : row.username;
-      const checkPasswordAfter = row.get ? row.get('password') : row.password;
-      console.log('[UserService] After save - username:', checkUsernameAfter, 'password set:', !!checkPasswordAfter);
-    } else {
-      console.error('[UserService] Row does not have save method! Row type:', typeof row);
-      console.error('[UserService] Available methods:', Object.getOwnPropertyNames(row).filter(k => typeof row[k] === 'function'));
-      throw new Error('Row save method not available');
-    }
+    console.log('[UserService] Row updated successfully via raw API');
     
     // Invalidate cache
     cache.invalidateUserRole(discordId);
