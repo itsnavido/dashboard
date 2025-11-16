@@ -50,6 +50,8 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'Payment Dashboard API',
     version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString(),
     endpoints: {
       health: '/api/health',
       auth: '/api/auth',
@@ -60,9 +62,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check
+// Health check - should work on Vercel
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // 404 handler for unmatched routes
@@ -91,5 +97,6 @@ if (require.main === module) {
 }
 
 // Export for Vercel serverless functions
+// Vercel expects the app to be exported directly for @vercel/node
 module.exports = app;
 
