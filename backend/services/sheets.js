@@ -14,30 +14,46 @@ let sheetsClient = null;
  * Priority: 1) JSON from .env, 2) File path (for local development)
  */
 function getServiceAccount() {
-  const serviceAccountJson = process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON;
-  const serviceAccountPath = process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_PATH;
+  const serviceAccountJson = process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON?.trim();
+  const serviceAccountPath = process.env.GOOGLE_SHEETS_SERVICE_ACCOUNT_PATH?.trim();
 
   let serviceAccount;
 
   // Option 1: Read from environment variable (preferred - for production/Vercel)
-  if (serviceAccountJson) {
+  if (serviceAccountJson && serviceAccountJson.length > 0) {
     try {
-      serviceAccount = JSON.parse(serviceAccountJson);
+      // Handle escaped newlines that might be in Vercel environment variables
+      const cleanedJson = serviceAccountJson.replace(/\\n/g, '\n');
+      serviceAccount = JSON.parse(cleanedJson);
     } catch (error) {
-      throw new Error('Invalid GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON. Must be valid JSON string.');
+      throw new Error(`Invalid GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON. Must be valid JSON string. Error: ${error.message}`);
     }
   }
   // Option 2: Read from JSON file (fallback for local development)
-  else if (serviceAccountPath) {
-    const jsonPath = path.isAbsolute(serviceAccountPath) 
-      ? serviceAccountPath 
-      : path.join(__dirname, '..', serviceAccountPath);
+  // Also check if serviceAccountPath actually contains JSON (common mistake)
+  else if (serviceAccountPath && serviceAccountPath.length > 0) {
+    // Check if the path looks like JSON (starts with {)
+    if (serviceAccountPath.trim().startsWith('{')) {
+      // Try to parse it as JSON (user might have put JSON in PATH variable by mistake)
+      try {
+        const cleanedJson = serviceAccountPath.replace(/\\n/g, '\n');
+        serviceAccount = JSON.parse(cleanedJson);
+        console.warn('Warning: JSON content found in GOOGLE_SHEETS_SERVICE_ACCOUNT_PATH. Consider using GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON instead.');
+      } catch (parseError) {
+        throw new Error('GOOGLE_SHEETS_SERVICE_ACCOUNT_PATH appears to contain JSON content but it is invalid. Use GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON instead for JSON strings, or provide a valid file path to GOOGLE_SHEETS_SERVICE_ACCOUNT_PATH.');
+      }
+    } else {
+      // It's a file path, read from file
+      const jsonPath = path.isAbsolute(serviceAccountPath) 
+        ? serviceAccountPath 
+        : path.join(__dirname, '..', serviceAccountPath);
 
-    if (!fs.existsSync(jsonPath)) {
-      throw new Error(`Google Sheets service account file not found at: ${jsonPath}`);
+      if (!fs.existsSync(jsonPath)) {
+        throw new Error(`Google Sheets service account file not found at: ${jsonPath}`);
+      }
+
+      serviceAccount = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
     }
-
-    serviceAccount = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   }
   else {
     throw new Error('Google Sheets credentials not configured. Set GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON (JSON string) in .env, or GOOGLE_SHEETS_SERVICE_ACCOUNT_PATH (file path) for local development');
