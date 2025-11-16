@@ -17,7 +17,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/payments');
+      const response = await api.get('/payments');
       setPayments(response.data);
       setError('');
     } catch (err) {
@@ -60,7 +60,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
     }
 
     try {
-      await api.delete(`/api/payments/${id}`);
+      await api.delete(`/payments/${id}`);
       fetchPayments();
       if (onDelete) onDelete();
     } catch (err) {

@@ -66,7 +66,7 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
         ...formData,
         gheymat: formData.gheymat ? formData.gheymat.toString().replace(/,/g, '') : ''
       };
-      await api.put(`/api/payments/${payment.id}`, submitData);
+      await api.put(`/payments/${payment.id}`, submitData);
       if (onSuccess) {
         onSuccess();
       }

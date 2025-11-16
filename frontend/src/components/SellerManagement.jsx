@@ -30,7 +30,7 @@ const SellerManagement = () => {
 
     try {
       const discordId = searchDiscordId.replace(/\s/g, '');
-      const response = await api.get(`/api/sellers/${discordId}`);
+      const response = await api.get(`/sellers/${discordId}`);
       
       if (response.data.error === 'Not Found') {
         // User not found, allow creating new entry
@@ -93,7 +93,7 @@ const SellerManagement = () => {
     setSuccess('');
 
     try {
-      await api.post('/api/sellers', {
+      await api.post('/sellers', {
         discordId: sellerInfo.discordId,
         card: formData.card,
         sheba: formData.sheba,

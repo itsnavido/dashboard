@@ -18,7 +18,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/users');
+      const response = await api.get('/users');
       setUsers(response.data);
       setError('');
     } catch (err) {
@@ -32,7 +32,7 @@ const UserManagement = () => {
   const handleAddUser = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/users', newUser);
+      await api.post('/users', newUser);
       setNewUser({ discordId: '', role: 'User' });
       setShowAddForm(false);
       fetchUsers();
@@ -44,7 +44,7 @@ const UserManagement = () => {
 
   const handleUpdateRole = async (discordId, newRole) => {
     try {
-      await api.put(`/api/users/${discordId}`, { role: newRole });
+      await api.put(`/users/${discordId}`, { role: newRole });
       fetchUsers();
     } catch (err) {
       console.error('Error updating user:', err);
@@ -58,7 +58,7 @@ const UserManagement = () => {
     }
 
     try {
-      await api.delete(`/api/users/${discordId}`);
+      await api.delete(`/users/${discordId}`);
       fetchUsers();
     } catch (err) {
       console.error('Error deleting user:', err);

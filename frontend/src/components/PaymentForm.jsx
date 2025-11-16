@@ -90,7 +90,7 @@ const PaymentForm = ({ onSuccess }) => {
     if (!discordId) return;
 
     try {
-      const response = await api.get(`/api/sellers/${discordId}`);
+      const response = await api.get(`/sellers/${discordId}`);
       
       if (response.data.error === 'Not Found') {
         setMessage('کاربر یافت نشد! لطفاً مشخصات کاربر جدید را ثبت نمایید');
@@ -248,7 +248,7 @@ const PaymentForm = ({ onSuccess }) => {
       // Save seller info if edit or add is checked
       if (showEdit || showAdd) {
         const discordId = formData.discordId.replace(/\s/g, '');
-        await api.post('/api/sellers', {
+        await api.post('/sellers', {
           discordId,
           card: sellerInfo.shomareKart,
           sheba: sellerInfo.shomareSheba,
@@ -278,7 +278,7 @@ const PaymentForm = ({ onSuccess }) => {
         wallet: sellerInfo.rank || ''
       };
 
-      const response = await api.post('/api/payments', paymentData);
+      const response = await api.post('/payments', paymentData);
       
       setMessage(`Payment created successfully! ID: ${response.data.uniqueID}`);
       setFormData({
