@@ -9,7 +9,8 @@ export const authService = {
   // Get current user
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/api/auth/me');
+      // api instance already has baseURL set, so just use the path
+      const response = await api.get('/auth/me');
       return response.data;
     } catch (error) {
       return null;
@@ -19,7 +20,8 @@ export const authService = {
   // Logout
   logout: async () => {
     try {
-      await api.post('/api/auth/logout');
+      // api instance already has baseURL set, so just use the path
+      await api.post('/auth/logout');
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
@@ -28,12 +30,13 @@ export const authService = {
 
   // Get Discord OAuth URL
   getDiscordAuthUrl: () => {
-    // Use the same API_URL constant for consistency
-    const authUrl = `${API_URL}/api/auth/discord`;
+    // API_URL already includes /api, so just add /auth/discord
+    const authUrl = `${API_URL}/auth/discord`;
     // Debug log (remove in production if needed)
     if (import.meta.env.DEV) {
       console.log('Discord Auth URL:', authUrl);
       console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+      console.log('API_URL:', API_URL);
     }
     return authUrl;
   }
