@@ -143,7 +143,13 @@ router.get('/discord/callback', (req, res, next) => {
         return res.redirect(`${frontendUrl}/login?error=auth_failed`);
       }
       console.log('[Auth] Successful login for user:', user.id);
-      res.redirect(frontendUrl);
+      // Ensure session is saved (cookie-session saves automatically, but we can force it)
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('[Auth] Session save error:', saveErr);
+        }
+        res.redirect(frontendUrl);
+      });
     });
   })(req, res, next);
 });
@@ -160,6 +166,14 @@ router.post('/logout', (req, res) => {
 
 // Get current user
 router.get('/me', (req, res) => {
+  // Debug logging
+  console.log('[Auth] /me check:', {
+    hasSession: !!req.session,
+    hasPassport: !!req.session?.passport,
+    hasUser: !!req.user,
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false
+  });
+  
   if (req.isAuthenticated && req.isAuthenticated()) {
     res.json(req.user);
   } else {

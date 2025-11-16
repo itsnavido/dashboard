@@ -29,13 +29,16 @@ app.use(express.urlencoded({ extended: true }));
 // Use cookie-session for serverless environments (Vercel)
 // This stores session data directly in encrypted cookies, which works across serverless invocations
 const isProduction = process.env.NODE_ENV === 'production';
+// For same-origin (single deployment), use 'lax'. For cross-origin, use 'none'
+// 'none' requires secure: true, which is fine since Vercel uses HTTPS
+const isCrossOrigin = !!process.env.FRONTEND_URL && process.env.FRONTEND_URL !== process.env.VERCEL_URL;
 const sessionConfig = {
   name: 'session',
   keys: [process.env.SESSION_SECRET || 'your-secret-key-change-in-production'],
   maxAge: 24 * 60 * 60 * 1000, // 24 hours
   httpOnly: true,
-  secure: isProduction, // Only send over HTTPS in production
-  sameSite: isProduction ? (process.env.FRONTEND_URL ? 'none' : 'lax') : 'lax' // 'none' for cross-origin, 'lax' for same-origin
+  secure: isProduction, // Always true in production (Vercel uses HTTPS)
+  sameSite: isProduction ? (isCrossOrigin ? 'none' : 'lax') : 'lax' // 'none' for cross-origin, 'lax' for same-origin
 };
 
 app.use(cookieSession(sessionConfig));
