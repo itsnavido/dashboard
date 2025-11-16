@@ -194,8 +194,8 @@ async function getSheet(sheetName) {
       // Try to create the sheet if it doesn't exist (for Users sheet)
       if (sheetName === config.sheetNames.users) {
         sheet = await spreadsheet.addSheet({ title: sheetName });
-        // Set headers: discordId (A), role (B), createdAt (C), updatedAt (D), nickname (E)
-        await sheet.setHeaderRow(['discordId', 'role', 'createdAt', 'updatedAt', 'nickname']);
+        // Set headers: discordId (A), role (B), createdAt (C), updatedAt (D), nickname (E), username (F), password (G)
+        await sheet.setHeaderRow(['discordId', 'role', 'createdAt', 'updatedAt', 'nickname', 'username', 'password']);
       } else {
         throw new Error(`Sheet "${sheetName}" not found`);
       }

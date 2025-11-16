@@ -1,6 +1,107 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
+// User row component with inline editing
+const UserRow = ({ user, onUpdateRole, onUpdateCredentials, onDelete }) => {
+  const [isEditingCredentials, setIsEditingCredentials] = useState(false);
+  const [username, setUsername] = useState(user.username || '');
+  const [password, setPassword] = useState('');
+
+  const handleSaveCredentials = () => {
+    if (!username.trim()) {
+      alert('Username cannot be empty');
+      return;
+    }
+    onUpdateCredentials(user.discordId, username.trim(), password || undefined);
+    setIsEditingCredentials(false);
+    setPassword(''); // Clear password field after saving
+  };
+
+  const handleCancelEdit = () => {
+    setUsername(user.username || '');
+    setPassword('');
+    setIsEditingCredentials(false);
+  };
+
+  return (
+    <tr>
+      <td>{user.discordId}</td>
+      <td>
+        <select
+          value={user.role}
+          onChange={(e) => onUpdateRole(user.discordId, e.target.value)}
+        >
+          <option value="User">User</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </td>
+      <td>
+        {isEditingCredentials ? (
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            style={{ width: '100%', padding: '5px' }}
+            autoFocus
+          />
+        ) : (
+          <span>{user.username || '-'}</span>
+        )}
+      </td>
+      <td>
+        {isEditingCredentials ? (
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Leave empty to keep current"
+            style={{ width: '100%', padding: '5px' }}
+          />
+        ) : (
+          <span>{user.username ? '••••••' : 'Not set'}</span>
+        )}
+      </td>
+      <td>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}</td>
+      <td>{user.updatedAt ? new Date(user.updatedAt).toLocaleString() : '-'}</td>
+      <td>
+        {isEditingCredentials ? (
+          <>
+            <button
+              className="btn-small btn-success"
+              onClick={handleSaveCredentials}
+              style={{ marginRight: '5px' }}
+            >
+              Save
+            </button>
+            <button
+              className="btn-small btn-secondary"
+              onClick={handleCancelEdit}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className="btn-small"
+              onClick={() => setIsEditingCredentials(true)}
+              style={{ marginRight: '5px' }}
+            >
+              Edit Credentials
+            </button>
+            <button
+              className="btn-small btn-danger"
+              onClick={() => onDelete(user.discordId)}
+            >
+              Delete
+            </button>
+          </>
+        )}
+      </td>
+    </tr>
+  );
+};
+
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +217,8 @@ const UserManagement = () => {
               <tr>
                 <th>Discord ID</th>
                 <th>Role</th>
+                <th>Username</th>
+                <th>Password</th>
                 <th>Created At</th>
                 <th>Updated At</th>
                 <th>Actions</th>
@@ -124,34 +227,27 @@ const UserManagement = () => {
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center' }}>
+                  <td colSpan="7" style={{ textAlign: 'center' }}>
                     No users found
                   </td>
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.discordId}>
-                    <td>{user.discordId}</td>
-                    <td>
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleUpdateRole(user.discordId, e.target.value)}
-                      >
-                        <option value="User">User</option>
-                        <option value="Admin">Admin</option>
-                      </select>
-                    </td>
-                    <td>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}</td>
-                    <td>{user.updatedAt ? new Date(user.updatedAt).toLocaleString() : '-'}</td>
-                    <td>
-                      <button
-                        className="btn-small btn-danger"
-                        onClick={() => handleDeleteUser(user.discordId)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                  <UserRow
+                    key={user.discordId}
+                    user={user}
+                    onUpdateRole={handleUpdateRole}
+                    onUpdateCredentials={async (discordId, username, password) => {
+                      try {
+                        await api.put(`/users/${discordId}`, { username, password });
+                        fetchUsers();
+                      } catch (err) {
+                        console.error('Error updating credentials:', err);
+                        alert(err.response?.data?.error || 'Failed to update credentials');
+                      }
+                    }}
+                    onDelete={handleDeleteUser}
+                  />
                 ))
               )}
             </tbody>

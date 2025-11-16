@@ -43,18 +43,27 @@ router.post('/', requireAdmin, async (req, res) => {
 router.put('/:discordId', requireAdmin, async (req, res) => {
   try {
     const { discordId } = req.params;
-    const { role } = req.body;
+    const { role, username, password } = req.body;
     
-    if (!role) {
-      return res.status(400).json({ error: 'Role is required' });
+    // If role is provided, update role
+    if (role !== undefined) {
+      if (!['Admin', 'User'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Must be Admin or User' });
+      }
+      
+      const user = await userService.updateUserRole(discordId, role);
+      res.json(user);
+      return;
     }
     
-    if (!['Admin', 'User'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role. Must be Admin or User' });
+    // If username or password is provided, update credentials
+    if (username !== undefined || password !== undefined) {
+      const result = await userService.updateUserCredentials(discordId, username, password);
+      res.json(result);
+      return;
     }
     
-    const user = await userService.updateUserRole(discordId, role);
-    res.json(user);
+    return res.status(400).json({ error: 'Either role, username, or password must be provided' });
   } catch (error) {
     console.error('Error updating user:', error);
     if (error.message === 'User not found') {

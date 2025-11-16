@@ -181,15 +181,69 @@ router.post('/logout', (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
-// Get current user
-// Apply JWT verification middleware first
-router.get('/me', verifyJWT, (req, res) => {
-  if (req.user) {
-    res.json(req.user);
-  } else {
-    res.status(401).json({ error: 'Not authenticated' });
-  }
-});
+    // Username/Password login
+    router.post('/login', async (req, res) => {
+      try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+          return res.status(400).json({ error: 'Username and password are required' });
+        }
+        
+        // Get user by username
+        const user = await userService.getUserByUsername(username);
+        
+        if (!user) {
+          return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        
+        // Check if user has a password set
+        if (!user.password || user.password === '') {
+          return res.status(401).json({ error: 'Password login not available for this user. Please use Discord login or set a password first.' });
+        }
+        
+        // Verify password
+        const isValidPassword = await userService.verifyPassword(password, user.password);
+        
+        if (!isValidPassword) {
+          return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        
+        // Generate JWT token
+        const token = generateToken({
+          id: user.discordId,
+          username: user.username || user.discordId,
+          role: user.role
+        });
+        
+        console.log('[Auth] Successful username/password login for user:', user.discordId);
+        
+        // Set JWT as HTTP-only cookie
+        setJWTCookie(res, token);
+        
+        res.json({
+          message: 'Login successful',
+          user: {
+            id: user.discordId,
+            username: user.username || user.discordId,
+            role: user.role
+          }
+        });
+      } catch (error) {
+        console.error('[Auth] Error during username/password login:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
 
-module.exports = router;
+    // Get current user
+    // Apply JWT verification middleware first
+    router.get('/me', verifyJWT, (req, res) => {
+      if (req.user) {
+        res.json(req.user);
+      } else {
+        res.status(401).json({ error: 'Not authenticated' });
+      }
+    });
+
+    module.exports = router;
 

@@ -2,6 +2,7 @@
 const sheets = require('./sheets');
 const cache = require('./cache');
 const config = require('../config/config');
+const bcrypt = require('bcrypt');
 
 /**
  * Get user by Discord ID
@@ -17,14 +18,16 @@ async function getUserByDiscordId(discordId) {
     const row = await sheets.findRowByValue(config.sheetNames.users, 0, discordId);
     
     if (row) {
-      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4)
+      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4), username (5), password (6)
       const rawData = row._rawData || [];
       const user = {
         discordId: rawData[0] || row.get('discordId') || '',
         role: rawData[1] || row.get('role') || '',
         createdAt: rawData[2] || row.get('createdAt') || '',
         updatedAt: rawData[3] || row.get('updatedAt') || '',
-        nickname: rawData[4] || row.get('nickname') || ''
+        nickname: rawData[4] || row.get('nickname') || '',
+        username: rawData[5] || row.get('username') || '',
+        password: rawData[6] || row.get('password') || '' // Hashed password
       };
       
       // Cache the role
@@ -123,14 +126,16 @@ async function getAllUsers() {
   try {
     const rows = await sheets.getRows(config.sheetNames.users);
     return rows.map(row => {
-      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4)
+      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4), username (5), password (6)
       const rawData = row._rawData || [];
       return {
         discordId: rawData[0] || row.get('discordId') || '',
         role: rawData[1] || row.get('role') || '',
         createdAt: rawData[2] || row.get('createdAt') || '',
         updatedAt: rawData[3] || row.get('updatedAt') || '',
-        nickname: rawData[4] || row.get('nickname') || ''
+        nickname: rawData[4] || row.get('nickname') || '',
+        username: rawData[5] || row.get('username') || '',
+        password: '' // Don't return password hash to frontend
       };
     });
   } catch (error) {
@@ -160,6 +165,96 @@ async function getUserNickname(discordId) {
   return discordId || 'Unknown';
 }
 
+/**
+ * Get user by username
+ */
+async function getUserByUsername(username) {
+  try {
+    const rows = await sheets.getRows(config.sheetNames.users);
+    const row = rows.find(r => {
+      const rawData = r._rawData || [];
+      const rowUsername = rawData[5] || r.get('username') || '';
+      return rowUsername.toLowerCase() === username.toLowerCase();
+    });
+    
+    if (row) {
+      const rawData = row._rawData || [];
+      return {
+        discordId: rawData[0] || row.get('discordId') || '',
+        role: rawData[1] || row.get('role') || '',
+        createdAt: rawData[2] || row.get('createdAt') || '',
+        updatedAt: rawData[3] || row.get('updatedAt') || '',
+        nickname: rawData[4] || row.get('nickname') || '',
+        username: rawData[5] || row.get('username') || '',
+        password: rawData[6] || row.get('password') || '' // Hashed password
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting user by username:', error);
+    return null;
+  }
+}
+
+/**
+ * Verify password against hash
+ */
+async function verifyPassword(plainPassword, hashedPassword) {
+  if (!hashedPassword) return false;
+  try {
+    return await bcrypt.compare(plainPassword, hashedPassword);
+  } catch (error) {
+    console.error('Error verifying password:', error);
+    return false;
+  }
+}
+
+/**
+ * Hash password
+ */
+async function hashPassword(plainPassword) {
+  const saltRounds = 10;
+  return await bcrypt.hash(plainPassword, saltRounds);
+}
+
+/**
+ * Update user username and/or password
+ */
+async function updateUserCredentials(discordId, username, password) {
+  try {
+    const row = await sheets.findRowByValue(config.sheetNames.users, 0, discordId);
+    
+    if (!row) {
+      throw new Error('User not found');
+    }
+    
+    // For Users sheet, use header names since it uses google-spreadsheet
+    const updateData = {
+      updatedAt: new Date().toISOString()
+    };
+    
+    if (username !== undefined) {
+      updateData.username = username;
+    }
+    
+    if (password !== undefined && password !== '') {
+      const hashedPassword = await hashPassword(password);
+      updateData.password = hashedPassword;
+    }
+    
+    await sheets.updateRow(row, updateData);
+    
+    // Invalidate cache
+    cache.invalidateUserRole(discordId);
+    
+    return { discordId, username, passwordUpdated: password !== undefined && password !== '' };
+  } catch (error) {
+    console.error('Error updating user credentials:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   getUserByDiscordId,
   createUser,
@@ -167,6 +262,10 @@ module.exports = {
   deleteUser,
   getAllUsers,
   isAdmin,
-  getUserNickname
+  getUserNickname,
+  getUserByUsername,
+  verifyPassword,
+  hashPassword,
+  updateUserCredentials
 };
 
