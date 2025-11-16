@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Main Express server
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const passport = require('passport');
 const cors = require('cors');
 
@@ -26,34 +26,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
-// Note: MemoryStore is used for simplicity. For production with multiple instances,
-// consider using Redis or another external session store
+// Use cookie-session for serverless environments (Vercel)
+// This stores session data directly in encrypted cookies, which works across serverless invocations
+const isProduction = process.env.NODE_ENV === 'production';
 const sessionConfig = {
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+  name: 'session',
+  keys: [process.env.SESSION_SECRET || 'your-secret-key-change-in-production'],
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  httpOnly: true,
+  secure: isProduction, // Only send over HTTPS in production
+  sameSite: isProduction ? (process.env.FRONTEND_URL ? 'none' : 'lax') : 'lax' // 'none' for cross-origin, 'lax' for same-origin
 };
 
-// Suppress MemoryStore warning in production (it's expected for serverless)
-if (process.env.NODE_ENV === 'production') {
-  // MemoryStore is acceptable for serverless functions as each invocation is isolated
-  // The warning is for multi-process scenarios, which doesn't apply to serverless
-  const originalWarn = console.warn;
-  console.warn = function(...args) {
-    if (args[0] && typeof args[0] === 'string' && args[0].includes('MemoryStore')) {
-      return; // Suppress MemoryStore warning
-    }
-    originalWarn.apply(console, args);
-  };
-}
-
-app.use(session(sessionConfig));
+app.use(cookieSession(sessionConfig));
 
 // Initialize Passport
 app.use(passport.initialize());
