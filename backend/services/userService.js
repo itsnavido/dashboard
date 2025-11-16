@@ -17,13 +17,14 @@ async function getUserByDiscordId(discordId) {
     const row = await sheets.findRowByValue(config.sheetNames.users, 0, discordId);
     
     if (row) {
-      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3)
+      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4)
       const rawData = row._rawData || [];
       const user = {
         discordId: rawData[0] || row.get('discordId') || '',
         role: rawData[1] || row.get('role') || '',
         createdAt: rawData[2] || row.get('createdAt') || '',
-        updatedAt: rawData[3] || row.get('updatedAt') || ''
+        updatedAt: rawData[3] || row.get('updatedAt') || '',
+        nickname: rawData[4] || row.get('nickname') || ''
       };
       
       // Cache the role
@@ -122,13 +123,14 @@ async function getAllUsers() {
   try {
     const rows = await sheets.getRows(config.sheetNames.users);
     return rows.map(row => {
-      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3)
+      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4)
       const rawData = row._rawData || [];
       return {
         discordId: rawData[0] || row.get('discordId') || '',
         role: rawData[1] || row.get('role') || '',
         createdAt: rawData[2] || row.get('createdAt') || '',
-        updatedAt: rawData[3] || row.get('updatedAt') || ''
+        updatedAt: rawData[3] || row.get('updatedAt') || '',
+        nickname: rawData[4] || row.get('nickname') || ''
       };
     });
   } catch (error) {
@@ -145,12 +147,26 @@ async function isAdmin(discordId) {
   return user && user.role === 'Admin';
 }
 
+/**
+ * Get user nickname by Discord ID
+ * Returns nickname from column E if available, otherwise returns Discord ID
+ */
+async function getUserNickname(discordId) {
+  const user = await getUserByDiscordId(discordId);
+  if (user && user.nickname) {
+    return user.nickname;
+  }
+  // Fallback to Discord ID if nickname not found
+  return discordId || 'Unknown';
+}
+
 module.exports = {
   getUserByDiscordId,
   createUser,
   updateUserRole,
   deleteUser,
   getAllUsers,
-  isAdmin
+  isAdmin,
+  getUserNickname
 };
 

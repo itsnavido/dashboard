@@ -6,6 +6,7 @@ const discord = require('../services/discord');
 const utils = require('../services/utils');
 const config = require('../config/config');
 const { requireAuth } = require('../middleware/auth');
+const userService = require('../services/userService');
 
 const router = express.Router();
 
@@ -176,8 +177,8 @@ router.post('/', requireAuth, async (req, res) => {
     
     const time = utils.formatDate();
     const uniqueID = utils.generateUniqueId();
-    // Use logged-in user's Discord username instead of admin field
-    const adminName = req.user?.username || req.user?.id || 'Unknown';
+    // Use logged-in user's nickname from Users sheet (column E) instead of username
+    const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
     
     // Get payment duration message
     const paymentDurationMessage = config.paymentDurationMessages[paymentDuration] || paymentDuration;
@@ -324,7 +325,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       id: req.params.id,
       uniqueID: currentPayment.uniqueID,
       action: 'update',
-      updatedBy: req.user?.username || req.user?.id || 'Unknown',
+      updatedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
       // Include old values for comparison
       oldPrice: currentPayment.price,
       oldAmount: currentPayment.amount,
@@ -389,7 +390,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       admin: getValue(cols.admin),
       processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
       action: 'delete',
-      deletedBy: req.user?.username || req.user?.id || 'Unknown'
+      deletedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown'
     };
     
     await sheets.deleteRow(row, config.sheetNames.payment, rowIndex);
