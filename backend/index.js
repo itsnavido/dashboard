@@ -40,6 +40,26 @@ const sessionConfig = {
 
 app.use(cookieSession(sessionConfig));
 
+// Add compatibility layer for Passport (cookie-session doesn't have regenerate/save methods)
+app.use((req, res, next) => {
+  if (req.session && !req.session.regenerate) {
+    req.session.regenerate = (callback) => {
+      // For cookie-session, regeneration just means creating a new session
+      // The session is already stored in the cookie, so we just call the callback
+      if (callback) callback();
+    };
+    req.session.save = (callback) => {
+      // For cookie-session, save is automatic, but we call the callback for compatibility
+      if (callback) callback();
+    };
+    req.session.destroy = (callback) => {
+      req.session = null;
+      if (callback) callback();
+    };
+  }
+  next();
+});
+
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
