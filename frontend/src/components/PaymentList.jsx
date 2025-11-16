@@ -141,14 +141,14 @@ const PaymentList = ({ onEdit, onDelete }) => {
                   const isLahzei = payment.paymentDuration && 
                                   payment.paymentDuration.toString().toLowerCase().includes('lahzei');
                   
-                  // Determine row style with priority: purple > green > blue
+                  // Determine row font color with priority: purple > green > blue
                   let rowStyle = {};
                   if (isNegative) {
-                    rowStyle.backgroundColor = '#e1bee7'; // Purple (highest priority)
+                    rowStyle.color = '#c084fc'; // Purple (highest priority)
                   } else if (isColumnQTrue) {
-                    rowStyle.backgroundColor = '#c8e6c9'; // Green
+                    rowStyle.color = '#86efac'; // Green
                   } else if (isLahzei) {
-                    rowStyle.backgroundColor = '#bbdefb'; // Blue
+                    rowStyle.color = '#93c5fd'; // Blue
                   }
                   
                   return (
