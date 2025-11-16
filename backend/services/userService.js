@@ -173,29 +173,48 @@ async function getUserNickname(discordId) {
  */
 async function getUserByUsername(username) {
   try {
+    console.log('[UserService] Looking for username:', username);
     const rows = await sheets.getRows(config.sheetNames.users);
+    console.log('[UserService] Total rows found:', rows.length);
+    
     const row = rows.find(r => {
-      // Users sheet uses header-based access, not raw data
-      const rowUsername = r.get('username') || r.username || '';
-      return rowUsername && rowUsername.toString().toLowerCase() === username.toLowerCase();
+      // Users sheet uses header-based access, try multiple methods
+      const rowUsername = r.username || r.get('username') || r['username'] || '';
+      const usernameStr = rowUsername ? rowUsername.toString().trim() : '';
+      const match = usernameStr && usernameStr.toLowerCase() === username.toLowerCase();
+      if (match) {
+        console.log('[UserService] Found matching row with username:', usernameStr);
+      }
+      return match;
     });
     
     if (row) {
       // Users sheet uses header-based access via google-spreadsheet
-      return {
-        discordId: row.get('discordId') || row.discordId || '',
-        role: row.get('role') || row.role || '',
-        createdAt: row.get('createdAt') || row.createdAt || '',
-        updatedAt: row.get('updatedAt') || row.updatedAt || '',
-        nickname: row.get('nickname') || row.nickname || '',
-        username: row.get('username') || row.username || '',
-        password: row.get('password') || row.password || '' // Hashed password
+      // Try direct property access first, then get() method
+      const user = {
+        discordId: row.discordId || row.get('discordId') || row['discordId'] || '',
+        role: row.role || row.get('role') || row['role'] || '',
+        createdAt: row.createdAt || row.get('createdAt') || row['createdAt'] || '',
+        updatedAt: row.updatedAt || row.get('updatedAt') || row['updatedAt'] || '',
+        nickname: row.nickname || row.get('nickname') || row['nickname'] || '',
+        username: row.username || row.get('username') || row['username'] || '',
+        password: row.password || row.get('password') || row['password'] || '' // Hashed password
       };
+      
+      console.log('[UserService] User data retrieved:', {
+        discordId: user.discordId,
+        username: user.username,
+        hasPassword: !!user.password,
+        passwordLength: user.password ? user.password.length : 0
+      });
+      
+      return user;
     }
     
+    console.log('[UserService] No user found with username:', username);
     return null;
   } catch (error) {
-    console.error('Error getting user by username:', error);
+    console.error('[UserService] Error getting user by username:', error);
     return null;
   }
 }
@@ -231,32 +250,43 @@ async function updateUserCredentials(discordId, username, password) {
     const row = await sheets.findRowByValue(config.sheetNames.users, 0, discordId);
     
     if (!row) {
+      console.error('[UserService] Row not found for discordId:', discordId);
       throw new Error('User not found');
     }
     
-    console.log('[UserService] Row found, updating...');
+    console.log('[UserService] Row found, row type:', typeof row, 'has save:', typeof row.save);
+    console.log('[UserService] Row properties:', Object.keys(row).slice(0, 10));
     
     // For Users sheet, use header names since it uses google-spreadsheet
     // Update updatedAt always
-    row.updatedAt = new Date().toISOString();
+    const updatedAtValue = new Date().toISOString();
+    row.updatedAt = updatedAtValue;
+    console.log('[UserService] Set updatedAt to:', updatedAtValue);
     
-    if (username !== undefined) {
+    if (username !== undefined && username !== null) {
       row.username = username;
-      console.log('[UserService] Setting username to:', username);
+      console.log('[UserService] Set username to:', username, 'Current row.username:', row.username);
     }
     
-    if (password !== undefined && password !== '') {
+    if (password !== undefined && password !== null && password !== '') {
       const hashedPassword = await hashPassword(password);
       row.password = hashedPassword;
-      console.log('[UserService] Password hashed and set');
+      console.log('[UserService] Set password hash (length:', hashedPassword.length, ')');
     }
+    
+    // Verify values are set before saving
+    console.log('[UserService] Before save - username:', row.username, 'password set:', !!row.password);
     
     // Save the row
     if (typeof row.save === 'function') {
       await row.save();
       console.log('[UserService] Row saved successfully');
+      
+      // Verify after save
+      console.log('[UserService] After save - username:', row.username, 'password set:', !!row.password);
     } else {
-      console.error('[UserService] Row does not have save method!');
+      console.error('[UserService] Row does not have save method! Row type:', typeof row);
+      console.error('[UserService] Available methods:', Object.getOwnPropertyNames(row).filter(k => typeof row[k] === 'function'));
       throw new Error('Row save method not available');
     }
     
@@ -266,6 +296,7 @@ async function updateUserCredentials(discordId, username, password) {
     return { discordId, username, passwordUpdated: password !== undefined && password !== '' };
   } catch (error) {
     console.error('[UserService] Error updating user credentials:', error);
+    console.error('[UserService] Error stack:', error.stack);
     throw error;
   }
 }

@@ -321,17 +321,18 @@ async function findRowByValue(sheetName, columnIndex, value) {
   return rows.find(row => {
     let cellValue;
     
-    // Try to get by header name first, then by index
-    if (row._sheet && row._sheet.headerValues) {
+    // For Users sheet (google-spreadsheet), use header-based access
+    if (sheetName === config.sheetNames.users && row._sheet && row._sheet.headerValues) {
       const headerRow = row._sheet.headerValues;
       if (columnIndex < headerRow.length) {
         const columnName = headerRow[columnIndex];
-        cellValue = row.get(columnName);
+        // Try direct property access first (google-spreadsheet style)
+        cellValue = row[columnName] || row.get(columnName);
       }
     }
     
-    // Fallback to raw data access
-    if (cellValue === undefined || cellValue === null) {
+    // Fallback to raw data access (for Payment sheet)
+    if (cellValue === undefined || cellValue === null || cellValue === '') {
       const rawData = row._rawData || [];
       cellValue = rawData[columnIndex];
     }
