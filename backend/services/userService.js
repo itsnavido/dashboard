@@ -269,26 +269,15 @@ async function updateUserCredentials(discordId, username, password) {
     // Update updatedAt always
     const updatedAtValue = new Date().toISOString();
     
-    // Try both methods: direct assignment and set() if available
-    if (typeof row.set === 'function') {
-      row.set('updatedAt', updatedAtValue);
-      if (username !== undefined && username !== null) {
-        row.set('username', username);
-      }
-      if (password !== undefined && password !== null && password !== '') {
-        const hashedPassword = await hashPassword(password);
-        row.set('password', hashedPassword);
-      }
-    } else {
-      // Fallback to direct property assignment
-      row.updatedAt = updatedAtValue;
-      if (username !== undefined && username !== null) {
-        row.username = username;
-      }
-      if (password !== undefined && password !== null && password !== '') {
-        const hashedPassword = await hashPassword(password);
-        row.password = hashedPassword;
-      }
+    // google-spreadsheet uses direct property assignment
+    // Assign values directly to row properties matching header names
+    row.updatedAt = updatedAtValue;
+    if (username !== undefined && username !== null) {
+      row.username = username;
+    }
+    if (password !== undefined && password !== null && password !== '') {
+      const hashedPassword = await hashPassword(password);
+      row.password = hashedPassword;
     }
     
     console.log('[UserService] Set updatedAt to:', updatedAtValue);
