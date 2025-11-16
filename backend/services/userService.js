@@ -159,14 +159,48 @@ async function isAdmin(discordId) {
 /**
  * Get user nickname by Discord ID
  * Returns nickname from column E if available, otherwise returns Discord ID
+ * Always fetches from sheet to get latest nickname (bypasses cache)
  */
 async function getUserNickname(discordId) {
-  const user = await getUserByDiscordId(discordId);
-  if (user && user.nickname) {
-    return user.nickname;
+  if (!discordId) {
+    return 'Unknown';
   }
-  // Fallback to Discord ID if nickname not found
-  return discordId || 'Unknown';
+  
+  try {
+    // Use raw API to read Users sheet to get latest nickname (bypass cache)
+    const client = await sheets.initSheetsClient();
+    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+    const sheetName = config.sheetNames.users;
+    
+    // Read all rows from Users sheet (row 1 is header, data starts at row 2)
+    const response = await client.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A2:G`, // Read from row 2 onwards (skip header)
+    });
+    
+    const rows = response.data.values || [];
+    
+    // Find row with matching Discord ID (column A, index 0)
+    const row = rows.find(r => {
+      const rowDiscordId = (r[0] || '').toString().trim();
+      return rowDiscordId === discordId.toString();
+    });
+    
+    if (row) {
+      // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3), nickname (4), username (5), password (6)
+      const nickname = (row[4] || '').toString().trim();
+      if (nickname) {
+        return nickname;
+      }
+    }
+    
+    // Fallback to Discord ID if nickname not found
+    return discordId || 'Unknown';
+  } catch (error) {
+    console.error('[UserService] Error getting user nickname:', error);
+    // Fallback to Discord ID on error
+    return discordId || 'Unknown';
+  }
 }
 
 /**
