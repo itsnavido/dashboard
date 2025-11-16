@@ -1,0 +1,16 @@
+{
+  "name": "payment-dashboard",
+  "version": "1.0.0",
+  "description": "Payment Dashboard - Full Stack Application",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build && cd ../backend && npm install",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
