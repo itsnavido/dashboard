@@ -45,6 +45,21 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/sellers', sellersRoutes);
 app.use('/api/users', usersRoutes);
 
+// Root endpoint - API information
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Payment Dashboard API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      payments: '/api/payments',
+      sellers: '/api/sellers',
+      users: '/api/users'
+    }
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -55,7 +70,8 @@ app.use((req, res) => {
   res.status(404).json({ 
     error: 'Not Found',
     path: req.path,
-    method: req.method
+    method: req.method,
+    message: 'This is the backend API. Use /api/* endpoints.'
   });
 });
 
