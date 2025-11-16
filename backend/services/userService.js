@@ -177,10 +177,17 @@ async function getUserByUsername(username) {
     const rows = await sheets.getRows(config.sheetNames.users);
     console.log('[UserService] Total rows found:', rows.length);
     
+    // Debug: Log all usernames we find
+    rows.forEach((r, idx) => {
+      const testUsername = r.get('username') || r.username || r['username'] || '';
+      console.log(`[UserService] Row ${idx} username:`, testUsername, 'type:', typeof testUsername);
+    });
+    
     const row = rows.find(r => {
       // Users sheet uses header-based access, try multiple methods
-      const rowUsername = r.username || r.get('username') || r['username'] || '';
-      const usernameStr = rowUsername ? rowUsername.toString().trim() : '';
+      // google-spreadsheet uses get() method primarily
+      const rowUsername = r.get('username') || r.username || r['username'] || '';
+      const usernameStr = rowUsername ? String(rowUsername).trim() : '';
       const match = usernameStr && usernameStr.toLowerCase() === username.toLowerCase();
       if (match) {
         console.log('[UserService] Found matching row with username:', usernameStr);
@@ -190,15 +197,15 @@ async function getUserByUsername(username) {
     
     if (row) {
       // Users sheet uses header-based access via google-spreadsheet
-      // Try direct property access first, then get() method
+      // google-spreadsheet primarily uses get() method
       const user = {
-        discordId: row.discordId || row.get('discordId') || row['discordId'] || '',
-        role: row.role || row.get('role') || row['role'] || '',
-        createdAt: row.createdAt || row.get('createdAt') || row['createdAt'] || '',
-        updatedAt: row.updatedAt || row.get('updatedAt') || row['updatedAt'] || '',
-        nickname: row.nickname || row.get('nickname') || row['nickname'] || '',
-        username: row.username || row.get('username') || row['username'] || '',
-        password: row.password || row.get('password') || row['password'] || '' // Hashed password
+        discordId: row.get('discordId') || row.discordId || row['discordId'] || '',
+        role: row.get('role') || row.role || row['role'] || '',
+        createdAt: row.get('createdAt') || row.createdAt || row['createdAt'] || '',
+        updatedAt: row.get('updatedAt') || row.updatedAt || row['updatedAt'] || '',
+        nickname: row.get('nickname') || row.nickname || row['nickname'] || '',
+        username: row.get('username') || row.username || row['username'] || '',
+        password: row.get('password') || row.password || row['password'] || '' // Hashed password
       };
       
       console.log('[UserService] User data retrieved:', {
@@ -255,35 +262,57 @@ async function updateUserCredentials(discordId, username, password) {
     }
     
     console.log('[UserService] Row found, row type:', typeof row, 'has save:', typeof row.save);
-    console.log('[UserService] Row properties:', Object.keys(row).slice(0, 10));
+    console.log('[UserService] Row has get method:', typeof row.get === 'function');
     
     // For Users sheet, use header names since it uses google-spreadsheet
+    // google-spreadsheet uses set() method or direct property assignment
     // Update updatedAt always
     const updatedAtValue = new Date().toISOString();
-    row.updatedAt = updatedAtValue;
-    console.log('[UserService] Set updatedAt to:', updatedAtValue);
     
-    if (username !== undefined && username !== null) {
-      row.username = username;
-      console.log('[UserService] Set username to:', username, 'Current row.username:', row.username);
+    // Try both methods: direct assignment and set() if available
+    if (typeof row.set === 'function') {
+      row.set('updatedAt', updatedAtValue);
+      if (username !== undefined && username !== null) {
+        row.set('username', username);
+      }
+      if (password !== undefined && password !== null && password !== '') {
+        const hashedPassword = await hashPassword(password);
+        row.set('password', hashedPassword);
+      }
+    } else {
+      // Fallback to direct property assignment
+      row.updatedAt = updatedAtValue;
+      if (username !== undefined && username !== null) {
+        row.username = username;
+      }
+      if (password !== undefined && password !== null && password !== '') {
+        const hashedPassword = await hashPassword(password);
+        row.password = hashedPassword;
+      }
     }
     
+    console.log('[UserService] Set updatedAt to:', updatedAtValue);
+    if (username !== undefined && username !== null) {
+      console.log('[UserService] Set username to:', username);
+    }
     if (password !== undefined && password !== null && password !== '') {
-      const hashedPassword = await hashPassword(password);
-      row.password = hashedPassword;
-      console.log('[UserService] Set password hash (length:', hashedPassword.length, ')');
+      console.log('[UserService] Set password hash');
     }
     
     // Verify values are set before saving
-    console.log('[UserService] Before save - username:', row.username, 'password set:', !!row.password);
+    const checkUsername = row.get ? row.get('username') : row.username;
+    const checkPassword = row.get ? row.get('password') : row.password;
+    console.log('[UserService] Before save - username:', checkUsername, 'password set:', !!checkPassword);
     
     // Save the row
     if (typeof row.save === 'function') {
       await row.save();
       console.log('[UserService] Row saved successfully');
       
-      // Verify after save
-      console.log('[UserService] After save - username:', row.username, 'password set:', !!row.password);
+      // Verify after save - need to reload to see persisted values
+      const checkUsernameAfter = row.get ? row.get('username') : row.username;
+      const checkPasswordAfter = row.get ? row.get('password') : row.password;
+      console.log('[UserService] After save - username:', checkUsernameAfter, 'password set:', !!checkPasswordAfter);
     } else {
       console.error('[UserService] Row does not have save method! Row type:', typeof row);
       console.error('[UserService] Available methods:', Object.getOwnPropertyNames(row).filter(k => typeof row[k] === 'function'));
