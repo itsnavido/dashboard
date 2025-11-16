@@ -352,23 +352,21 @@ async function updateRow(row, data, sheetName = null, rowIndex = null) {
     }
   }
   
-  // Update raw data by column index
-  Object.keys(data).forEach(colIndex => {
-    const index = parseInt(colIndex);
+  // For Users sheet (google-spreadsheet), update by header name
+  // google-spreadsheet rows have properties matching header names
+  Object.keys(data).forEach(key => {
+    const index = parseInt(key);
+    // If key is a number, it's a column index (for Payment sheet raw data)
     if (!isNaN(index) && row._rawData) {
-      row._rawData[index] = data[colIndex];
+      row._rawData[index] = data[key];
     } else {
-      // Try to update by header name
-      const headerRow = row._sheet?.headerValues;
-      if (headerRow && headerRow.includes(colIndex)) {
-        row[colIndex] = data[colIndex];
-      } else {
-        row[colIndex] = data[colIndex];
-      }
+      // For Users sheet, set property directly on row object
+      // google-spreadsheet uses properties matching header names
+      row[key] = data[key];
     }
   });
   
-  // Only call save if the method exists
+  // Only call save if the method exists (google-spreadsheet rows have save method)
   if (typeof row.save === 'function') {
     await row.save();
   }

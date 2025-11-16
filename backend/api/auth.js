@@ -200,7 +200,14 @@ router.post('/logout', (req, res) => {
           return res.status(401).json({ error: 'Invalid username or password' });
         }
         
-        console.log('[Auth] User found:', user.discordId, 'Has password:', !!user.password);
+        console.log('[Auth] User found:', user.discordId, 'Has password:', !!user.password, 'Password length:', user.password ? user.password.length : 0);
+        console.log('[Auth] User details:', {
+          discordId: user.discordId,
+          username: user.username,
+          role: user.role,
+          hasPassword: !!user.password,
+          passwordPrefix: user.password ? user.password.substring(0, 10) + '...' : 'none'
+        });
         
         // Check if user has a password set
         if (!user.password || user.password === '') {
@@ -209,6 +216,7 @@ router.post('/logout', (req, res) => {
         }
         
         // Verify password
+        console.log('[Auth] Verifying password...');
         const isValidPassword = await userService.verifyPassword(password, user.password);
         
         console.log('[Auth] Password verification result:', isValidPassword);

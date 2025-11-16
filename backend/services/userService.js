@@ -79,11 +79,14 @@ async function updateUserRole(discordId, newRole) {
       throw new Error('User not found');
     }
     
-    // Users sheet: discordId (0), role (1), createdAt (2), updatedAt (3)
-    await sheets.updateRow(row, {
-      1: newRole,
-      3: new Date().toISOString()
-    });
+    // For Users sheet, use header names (google-spreadsheet)
+    row.role = newRole;
+    row.updatedAt = new Date().toISOString();
+    
+    // Save the row
+    if (typeof row.save === 'function') {
+      await row.save();
+    }
     
     // Invalidate and update cache
     cache.invalidateUserRole(discordId);
@@ -223,34 +226,46 @@ async function hashPassword(plainPassword) {
  */
 async function updateUserCredentials(discordId, username, password) {
   try {
+    console.log('[UserService] Updating credentials for:', discordId, 'username:', username, 'hasPassword:', !!password);
+    
     const row = await sheets.findRowByValue(config.sheetNames.users, 0, discordId);
     
     if (!row) {
       throw new Error('User not found');
     }
     
+    console.log('[UserService] Row found, updating...');
+    
     // For Users sheet, use header names since it uses google-spreadsheet
-    const updateData = {
-      updatedAt: new Date().toISOString()
-    };
+    // Update updatedAt always
+    row.updatedAt = new Date().toISOString();
     
     if (username !== undefined) {
-      updateData.username = username;
+      row.username = username;
+      console.log('[UserService] Setting username to:', username);
     }
     
     if (password !== undefined && password !== '') {
       const hashedPassword = await hashPassword(password);
-      updateData.password = hashedPassword;
+      row.password = hashedPassword;
+      console.log('[UserService] Password hashed and set');
     }
     
-    await sheets.updateRow(row, updateData);
+    // Save the row
+    if (typeof row.save === 'function') {
+      await row.save();
+      console.log('[UserService] Row saved successfully');
+    } else {
+      console.error('[UserService] Row does not have save method!');
+      throw new Error('Row save method not available');
+    }
     
     // Invalidate cache
     cache.invalidateUserRole(discordId);
     
     return { discordId, username, passwordUpdated: password !== undefined && password !== '' };
   } catch (error) {
-    console.error('Error updating user credentials:', error);
+    console.error('[UserService] Error updating user credentials:', error);
     throw error;
   }
 }
