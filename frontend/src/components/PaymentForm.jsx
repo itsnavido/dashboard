@@ -490,7 +490,7 @@ const PaymentForm = ({ onSuccess }) => {
           {showGheymat && (
             <>
               <label htmlFor="gheymat">
-                قیمت ({formData.paymentTime?.toLowerCase().includes('toman') ? '$' : 'Rial'}):
+                قیمت ({formData.paymentTime === 'usdt days' ? 'Rial' : 'Toman'}):
               </label>
               <input
                 type="text"
@@ -505,11 +505,6 @@ const PaymentForm = ({ onSuccess }) => {
                 readOnly={formData.paymentType === 'Gold'}
                 style={formData.paymentType === 'Gold' ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
               />
-              {formData.paymentType === 'Naghdi' && (
-                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem', marginBottom: '1rem' }}>
-                  equal toman
-                </div>
-              )}
             </>
           )}
 
