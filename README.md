@@ -261,6 +261,19 @@ Before pushing to GitHub:
 
 5. **Connect to Vercel** via GitHub integration for automatic deployments
 
+## VPS Deployment
+
+For deploying on your own VPS with a custom domain, see [VPS_DEPLOYMENT.md](./VPS_DEPLOYMENT.md) for detailed instructions.
+
+Quick overview:
+- Install Node.js, Nginx, PM2
+- Clone repository to `/var/www/dashboard`
+- Configure environment variables
+- Build frontend and start backend with PM2
+- Configure Nginx as reverse proxy
+- Setup SSL with Let's Encrypt
+- Configure domain DNS records
+
 ## License
 
 MIT
