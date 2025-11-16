@@ -79,11 +79,13 @@ app.use((req, res, next) => {
   // Store original end function to ensure session is saved
   const originalEnd = res.end;
   res.end = function(...args) {
-    // If session has passport data, ensure it's saved by setting a direct property
-    // This triggers cookie-session's change detection (it only watches direct properties)
+    // If session has passport data, ensure it's saved
+    // cookie-session doesn't detect nested changes, so we need to trigger change detection
     if (req.session && req.session.passport && Object.keys(req.session.passport).length > 0) {
-      // Set a timestamp to trigger cookie-session to save the session
+      // Set a direct property to trigger cookie-session's change detection
+      // This is the recommended workaround for nested object changes
       req.session._lastModified = Date.now();
+      req.session.isChanged = true;
     }
     originalEnd.apply(res, args);
   };

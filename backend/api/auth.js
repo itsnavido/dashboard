@@ -143,20 +143,41 @@ router.get('/discord/callback', (req, res, next) => {
         return res.redirect(`${frontendUrl}/login?error=auth_failed`);
       }
       console.log('[Auth] Successful login for user:', user.id);
+      
+      // Calculate session size to check if it exceeds cookie limits (4KB default for cookie-session)
+      const sessionData = req.session ? JSON.stringify(req.session) : '';
+      const sessionSize = sessionData.length;
       console.log('[Auth] Session after login:', {
         hasSession: !!req.session,
         hasPassport: !!req.session?.passport,
         passportUser: req.session?.passport?.user ? 'present' : 'missing',
-        passportKeys: req.session?.passport ? Object.keys(req.session.passport) : []
+        passportKeys: req.session?.passport ? Object.keys(req.session.passport) : [],
+        sessionSize: sessionSize,
+        sessionSizeKB: (sessionSize / 1024).toFixed(2) + ' KB'
       });
+      
+      // Check if session is too large (cookie-session has ~4KB limit)
+      if (sessionSize > 4000) {
+        console.warn('[Auth] WARNING: Session size exceeds cookie limit! Size:', sessionSize, 'bytes');
+      }
       
       // For cookie-session, we need to explicitly trigger change detection
       // cookie-session only detects changes to direct properties, not nested ones
-      // So we set a timestamp property to force cookie-session to save the session
+      // So we set flags to force cookie-session to save the session
       if (req.session) {
+        // Set multiple properties to ensure change is detected
+        // This triggers cookie-session's Proxy to mark the session as modified
         req.session._lastModified = Date.now();
+        req.session.isChanged = true;
+        req.session._saved = true;
+        
+        // Verify the session has passport data before redirecting
+        if (!req.session.passport || !req.session.passport.user) {
+          console.error('[Auth] ERROR: Session passport data missing after login!');
+        }
       }
       
+      // Redirect - cookie-session will save the session automatically when response is sent
       res.redirect(frontendUrl);
     });
   })(req, res, next);
