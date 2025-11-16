@@ -237,15 +237,15 @@ async function getPaymentRowsRaw() {
     // Read data starting from row 4 (skip header rows 1-3)
     const response = await client.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A4:Q`, // A4:Q means start from row 4, columns A-Q (rows 1-3 are headers)
+      range: `${sheetName}!A4:V`, // A4:V means start from row 4, columns A-V (rows 1-3 are headers)
     });
 
     const rows = response.data.values || [];
     
     // Convert to format compatible with google-spreadsheet row objects
     return rows.map((rowData, index) => {
-      // Pad row to 17 columns (A-Q)
-      const paddedRow = new Array(17).fill('').map((_, i) => rowData[i] || '');
+      // Pad row to 22 columns (A-V)
+      const paddedRow = new Array(22).fill('').map((_, i) => rowData[i] || '');
       
       return {
         _rawData: paddedRow,

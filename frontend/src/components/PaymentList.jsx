@@ -106,6 +106,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 <th>Price</th>
                 <th>Gheymat</th>
                 <th>Duration</th>
+                <th>Time Left</th>
                 <th>Admin</th>
                 <th>Actions</th>
               </tr>
@@ -113,44 +114,65 @@ const PaymentList = ({ onEdit, onDelete }) => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '40px' }}>
                     Loading payments...
                   </td>
                 </tr>
               ) : paginatedPayments.length === 0 ? (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '40px' }}>
                     {searchTerm ? 'No payments found matching your search' : 'No payments found'}
                   </td>
                 </tr>
               ) : (
-                paginatedPayments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td>{payment.uniqueID || payment.id}</td>
-                    <td>{payment.time}</td>
-                    <td>{payment.userid}</td>
-                    <td>{payment.realm}</td>
-                    <td>{payment.amount}</td>
-                    <td>{payment.price}</td>
-                    <td>{payment.gheymat ? formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0) : ''}</td>
-                    <td>{payment.paymentDuration}</td>
-                    <td>{payment.admin}</td>
-                    <td>
-                      <button
-                        className="btn-small btn-secondary"
-                        onClick={() => onEdit && onEdit(payment)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn-small btn-danger"
-                        onClick={() => handleDelete(payment.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                paginatedPayments.map((payment) => {
+                  // Check if time left is negative
+                  const timeLeftStr = payment.timeLeftToPay || '';
+                  const isNegative = timeLeftStr.toString().trim().startsWith('-') || 
+                                   (timeLeftStr && !isNaN(parseFloat(timeLeftStr)) && parseFloat(timeLeftStr) < 0);
+                  
+                  // Check if duration contains "lahzei"
+                  const isLahzei = payment.paymentDuration && 
+                                  payment.paymentDuration.toString().toLowerCase().includes('lahzei');
+                  
+                  // Determine row style: purple for negative, blue for lahzei
+                  // Purple takes precedence if both conditions are true
+                  let rowStyle = {};
+                  if (isNegative) {
+                    rowStyle.backgroundColor = '#e1bee7'; // Purple
+                  } else if (isLahzei) {
+                    rowStyle.backgroundColor = '#bbdefb'; // Blue
+                  }
+                  
+                  return (
+                    <tr key={payment.id} style={rowStyle}>
+                      <td>{payment.uniqueID || payment.id}</td>
+                      <td>{payment.time}</td>
+                      <td>{payment.userid}</td>
+                      <td>{payment.realm}</td>
+                      <td>{payment.amount}</td>
+                      <td>{payment.price}</td>
+                      <td>{payment.gheymat ? formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0) : ''}</td>
+                      <td>{payment.paymentDuration}</td>
+                      <td>{payment.timeLeftToPay || ''}</td>
+                      <td>{payment.admin}</td>
+                      <td>
+                        <button
+                          className="btn-small btn-secondary"
+                          onClick={() => onEdit && onEdit(payment)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn-small btn-danger"
+                          onClick={() => handleDelete(payment.id)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

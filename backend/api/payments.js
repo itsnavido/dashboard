@@ -44,7 +44,8 @@ router.get('/', requireAuth, async (req, res) => {
         wallet: getValue(cols.wallet),
         uniqueID: getValue(cols.uniqueID),
         admin: getValue(cols.admin),
-        processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true'
+        processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
+        timeLeftToPay: getValue(cols.timeLeftToPay) || ''
       };
     });
     
@@ -91,7 +92,8 @@ router.get('/:id', requireAuth, async (req, res) => {
       wallet: getValue(cols.wallet),
       uniqueID: getValue(cols.uniqueID),
       admin: getValue(cols.admin),
-      processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true'
+      processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
+      timeLeftToPay: getValue(cols.timeLeftToPay) || ''
     };
     
     res.json(payment);
