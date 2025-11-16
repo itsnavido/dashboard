@@ -1,9 +1,42 @@
 // Users API routes (Admin only)
 const express = require('express');
 const userService = require('../services/userService');
+const sheets = require('../services/sheets');
+const config = require('../config/config');
 const { requireAdmin } = require('../middleware/roleCheck');
 
 const router = express.Router();
+
+// Diagnostic endpoint to check sheet structure (Admin only)
+router.get('/diagnostic', requireAdmin, async (req, res) => {
+  try {
+    const rows = await sheets.getRows(config.sheetNames.users);
+    const diagnostic = {
+      totalRows: rows.length,
+      sampleRow: rows.length > 0 ? {
+        hasRawData: !!rows[0]._rawData,
+        hasSheet: !!rows[0]._sheet,
+        headerValues: rows[0]._sheet?.headerValues || [],
+        properties: Object.keys(rows[0]).slice(0, 20),
+        directAccess: {
+          discordId: rows[0].discordId,
+          username: rows[0].username,
+          password: rows[0].password ? '***' : null
+        },
+        getMethod: {
+          discordId: rows[0].get('discordId'),
+          username: rows[0].get('username'),
+          password: rows[0].get('password') ? '***' : null
+        },
+        hasSave: typeof rows[0].save === 'function'
+      } : null
+    };
+    res.json(diagnostic);
+  } catch (error) {
+    console.error('Error in diagnostic:', error);
+    res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
 
 // Get all users (Admin only)
 router.get('/', requireAdmin, async (req, res) => {
