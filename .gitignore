@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel
+
+# Google Service Account credentials (JSON files)
+*-service-account*.json
+*credentials*.json
+service-account-key.json
+celestial-*.json
+# Exclude any JSON files in backend root that look like service account keys
+backend/*.json
+!backend/package.json
+!backend/package-lock.json
+
