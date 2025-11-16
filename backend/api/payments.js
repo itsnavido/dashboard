@@ -223,6 +223,7 @@ router.post('/', requireAuth, async (req, res) => {
     
     // Send Discord webhook
     try {
+      const currency = paymentDuration === 'usdt days' ? '$' : 'Toman';
       await discord.sendDiscordMessage({
         discordId,
         amount: parseFloat(amount) || 0,
@@ -236,7 +237,8 @@ router.post('/', requireAuth, async (req, res) => {
         id: uniqueID,
         sheba: sheba || '',
         name: name || '',
-        action: 'create'
+        action: 'create',
+        currency: currency
       });
     } catch (webhookError) {
       console.error('Discord webhook error:', webhookError);
@@ -319,6 +321,9 @@ router.put('/:id', requireAuth, async (req, res) => {
     await sheets.updateRow(row, updateData, config.sheetNames.payment, rowIndex);
     
     // Get updated payment data for webhook (include old values, especially oldPrice)
+    const paymentDurationForCurrency = req.body.paymentDuration || currentPayment.paymentDuration;
+    const currency = paymentDurationForCurrency === 'usdt days' ? '$' : 'Toman';
+    
     const updatedPayment = {
       ...currentPayment,
       ...req.body,
@@ -331,7 +336,8 @@ router.put('/:id', requireAuth, async (req, res) => {
       oldAmount: currentPayment.amount,
       oldGheymat: currentPayment.gheymat,
       oldRealm: currentPayment.realm,
-      oldPaymentDuration: currentPayment.paymentDuration
+      oldPaymentDuration: currentPayment.paymentDuration,
+      currency: currency
     };
     
     // Send Discord webhook
@@ -390,7 +396,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
       admin: getValue(cols.admin),
       processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
       action: 'delete',
-      deletedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown'
+      deletedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
+      currency: getValue(cols.paymentDuration) === 'usdt days' ? '$' : 'Toman'
     };
     
     await sheets.deleteRow(row, config.sheetNames.payment, rowIndex);
