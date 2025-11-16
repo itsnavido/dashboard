@@ -50,6 +50,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// 404 handler for unmatched routes
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Not Found',
+    path: req.path,
+    method: req.method
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
@@ -58,11 +67,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+// For local development
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
 
+// Export for Vercel serverless functions
 module.exports = app;
 

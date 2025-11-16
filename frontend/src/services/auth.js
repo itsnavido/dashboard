@@ -1,6 +1,9 @@
 // Authentication service
 import api from './api';
 
+// Get API URL from environment or use default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export const authService = {
   // Get current user
   getCurrentUser: async () => {
@@ -24,8 +27,14 @@ export const authService = {
 
   // Get Discord OAuth URL
   getDiscordAuthUrl: () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${apiUrl}/api/auth/discord`;
+    // Use the same API_URL constant for consistency
+    const authUrl = `${API_URL}/api/auth/discord`;
+    // Debug log (remove in production if needed)
+    if (import.meta.env.DEV) {
+      console.log('Discord Auth URL:', authUrl);
+      console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+    }
+    return authUrl;
   }
 };
 
