@@ -6,52 +6,14 @@ const PaymentForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     discordId: '',
     paymentType: '',
-    paymentTime: 'lahzei',
+    paymentDuration: 'lahzei',
     realm: '',
     customRealm: '',
     amount: '',
-    price: '',
-    gheymat: '',
+    unitPrice: '',
+    totalAmount: '',
     note: ''
   });
-
-  // Recalculate gheymat when paymentType or paymentTime changes (for Gold payments)
-  useEffect(() => {
-    if (formData.paymentType === 'Gold') {
-      const amountStr = (formData.amount || '').replace(/,/g, '');
-      const priceStr = (formData.price || '').replace(/,/g, '');
-      const amount = parseFloat(amountStr);
-      const price = parseFloat(priceStr);
-      
-      if (!isNaN(amount) && !isNaN(price) && amount > 0 && price > 0) {
-        let gheymat = amount * price;
-        if (formData.paymentTime !== 'usdt days') {
-          gheymat = amount * price * 10;
-        }
-        setFormData(prev => {
-          // Only update if the calculated value is different to avoid infinite loops
-          const newGheymat = formatNumber(gheymat, true);
-          if (prev.gheymat !== newGheymat) {
-            return {
-              ...prev,
-              gheymat: newGheymat // Show total amount with decimals
-            };
-          }
-          return prev;
-        });
-      } else if (!amountStr && !priceStr) {
-        // Clear gheymat if both are empty
-        setFormData(prev => prev.gheymat ? { ...prev, gheymat: '' } : prev);
-      }
-    } else if (formData.paymentType === 'Naghdi' && formData.gheymat && formData.amount && formData.price) {
-      // Clear auto-calculated gheymat when switching to Naghdi (user will enter manually)
-      setFormData(prev => ({
-        ...prev,
-        gheymat: ''
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.paymentType, formData.paymentTime]);
 
   const [sellerInfo, setSellerInfo] = useState({
     shomareSheba: '',
@@ -85,6 +47,39 @@ const PaymentForm = ({ onSuccess }) => {
     { value: 'Custom', label: 'Custom' }
   ];
 
+  const isUSDT = formData.paymentDuration === 'usdt days';
+  const currencySymbol = isUSDT ? '$' : '';
+
+  // Calculate total amount for Gold payments
+  useEffect(() => {
+    if (formData.paymentType === 'Gold' && formData.amount && formData.unitPrice) {
+      const amount = parseFloat(formData.amount.replace(/,/g, '')) || 0;
+      const unitPrice = parseFloat(formData.unitPrice.replace(/,/g, '')) || 0;
+      
+      if (amount > 0 && unitPrice > 0) {
+        let total = amount * unitPrice;
+        if (!isUSDT) {
+          total = total * 10; // Multiply by 10 for non-USDT
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          totalAmount: formatNumber(total, true)
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          totalAmount: ''
+        }));
+      }
+    } else if (formData.paymentType === 'Gold') {
+      setFormData(prev => ({
+        ...prev,
+        totalAmount: ''
+      }));
+    }
+  }, [formData.paymentType, formData.amount, formData.unitPrice, isUSDT]);
+
   const fetchSellerData = async () => {
     const discordId = formData.discordId.replace(/\s/g, '');
     if (!discordId) return;
@@ -110,73 +105,62 @@ const PaymentForm = ({ onSuccess }) => {
           shomareKart: response.data.card || '',
           name: response.data.name || '',
           shomareTamas: response.data.phone || '',
-          rank: response.data.rank || ''
+          rank: response.data.wallet || ''
         });
         setUserFound(true);
-        setShowAdd(false);
         setShowEdit(true);
+        setShowAdd(false);
         setMessage('');
       }
     } catch (error) {
       console.error('Error fetching seller data:', error);
-      setMessage('Error fetching user data');
+      setMessage('خطا در دریافت اطلاعات کاربر');
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // For amount and price fields, allow decimal input
-    let processedValue = value;
-    if (name === 'amount' || name === 'price') {
-      // Remove commas for processing, but allow decimal point
-      processedValue = value.replace(/,/g, '');
-      // Validate: allow numbers and one decimal point
-      if (processedValue && !/^\d*\.?\d*$/.test(processedValue)) {
-        return; // Invalid input, don't update
-      }
-    }
-    
-    // Clear customRealm when switching away from "Custom"
-    if (name === 'realm' && value !== 'Custom') {
+    // Allow decimal input for amount and unitPrice
+    if (name === 'amount' || name === 'unitPrice') {
+      // Remove commas and allow decimal input
+      const cleanValue = value.replace(/,/g, '');
       setFormData(prev => ({
         ...prev,
-        [name]: processedValue,
-        customRealm: ''
+        [name]: cleanValue
       }));
-      return;
-    }
-    
-    setFormData(prev => {
-      const updated = {
+    } else {
+      setFormData(prev => ({
         ...prev,
-        [name]: processedValue
-      };
+        [name]: value
+      }));
+    }
+  };
 
-      // Auto-calculate gheymat for Gold payment type
-      if ((name === 'amount' || name === 'price' || name === 'paymentTime') && updated.paymentType === 'Gold') {
-        // Get current values, removing commas if present
-        const amountStr = (updated.amount || '').replace(/,/g, '');
-        const priceStr = (updated.price || '').replace(/,/g, '');
-        const paymentTime = updated.paymentTime;
-        
-        const amount = parseFloat(amountStr);
-        const price = parseFloat(priceStr);
-        
-        if (!isNaN(amount) && !isNaN(price) && amount > 0 && price > 0) {
-          let gheymat = amount * price;
-          if (paymentTime !== 'usdt days') {
-            gheymat = amount * price * 10;
-          }
-          updated.gheymat = formatNumber(gheymat, true); // Allow decimals, show total amount
-        } else if (amountStr === '' || priceStr === '') {
-          // Clear gheymat if amount or price is cleared
-          updated.gheymat = '';
-        }
+  const handleAmountBlur = (e) => {
+    // Format on blur for Naghdi amount
+    if (formData.paymentType === 'Naghdi') {
+      const value = e.target.value.replace(/,/g, '');
+      if (value && !isNaN(parseFloat(value))) {
+        const numValue = parseFloat(value);
+        setFormData(prev => ({
+          ...prev,
+          amount: formatNumber(numValue, true)
+        }));
       }
-      
-      return updated;
-    });
+    }
+  };
+
+  const handleUnitPriceBlur = (e) => {
+    // Format on blur
+    const value = e.target.value.replace(/,/g, '');
+    if (value && !isNaN(parseFloat(value))) {
+      const numValue = parseFloat(value);
+      setFormData(prev => ({
+        ...prev,
+        unitPrice: formatNumber(numValue, true)
+      }));
+    }
   };
 
   const handleSellerInfoChange = (e) => {
@@ -185,56 +169,6 @@ const PaymentForm = ({ onSuccess }) => {
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleGheymatChange = (e) => {
-    let value = e.target.value;
-    
-    // Remove commas for validation
-    const cleanValue = value.replace(/,/g, '');
-    
-    // Allow decimal input - validate format (allow numbers, one decimal point, and decimal digits)
-    if (cleanValue && !/^\d*\.?\d*$/.test(cleanValue)) {
-      return; // Invalid input, don't update
-    }
-    
-    // For Naghdi, allow raw decimal input without immediate formatting
-    // Store the raw value (with or without decimal point) to allow typing
-    if (formData.paymentType === 'Naghdi') {
-      // Allow the raw value to be stored so user can type decimals freely
-      setFormData(prev => ({
-        ...prev,
-        gheymat: cleanValue
-      }));
-    } else {
-      // For Gold, this shouldn't be manually editable, but if it is, format it
-      if (cleanValue && !isNaN(parseFloat(cleanValue))) {
-        const numValue = parseFloat(cleanValue);
-        setFormData(prev => ({
-          ...prev,
-          gheymat: formatNumber(numValue, true)
-        }));
-      } else if (cleanValue === '') {
-        setFormData(prev => ({
-          ...prev,
-          gheymat: ''
-        }));
-      }
-    }
-  };
-
-  const handleGheymatBlur = (e) => {
-    // Format the value on blur (when user finishes typing)
-    if (formData.paymentType === 'Naghdi') {
-      const value = e.target.value.replace(/,/g, '');
-      if (value && !isNaN(parseFloat(value))) {
-        const numValue = parseFloat(value);
-        setFormData(prev => ({
-          ...prev,
-          gheymat: formatNumber(numValue, true)
-        }));
-      }
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -259,17 +193,14 @@ const PaymentForm = ({ onSuccess }) => {
       }
 
       // Submit payment
-      // Use customRealm if "Custom" is selected, otherwise use the selected realm
       const finalRealm = formData.realm === 'Custom' ? (formData.customRealm || '') : formData.realm;
       
-      const paymentData = {
+      // Prepare payment data based on payment type
+      let paymentData = {
         discordId: formData.discordId.replace(/\s/g, ''),
         paymentType: formData.paymentType,
-        paymentDuration: formData.paymentTime,
+        paymentDuration: formData.paymentDuration,
         realm: finalRealm,
-        amount: formData.amount,
-        price: formData.price,
-        gheymat: formData.gheymat.replace(/,/g, ''),
         note: formData.note,
         card: sellerInfo.shomareKart,
         sheba: sellerInfo.shomareSheba,
@@ -278,26 +209,36 @@ const PaymentForm = ({ onSuccess }) => {
         wallet: sellerInfo.rank || ''
       };
 
+      if (formData.paymentType === 'Gold') {
+        paymentData.amount = formData.amount.replace(/,/g, '');
+        paymentData.price = formData.unitPrice.replace(/,/g, '');
+        paymentData.gheymat = formData.totalAmount.replace(/,/g, '');
+      } else if (formData.paymentType === 'Naghdi') {
+        paymentData.gheymat = formData.amount.replace(/,/g, '');
+        paymentData.amount = '';
+        paymentData.price = '';
+      }
+
       const response = await api.post('/payments', paymentData);
       
       // Create detailed success message
-      const paymentDurationLabel = paymentDurationOptions.find(opt => opt.value === formData.paymentTime)?.label || formData.paymentTime;
+      const paymentDurationLabel = paymentDurationOptions.find(opt => opt.value === formData.paymentDuration)?.label || formData.paymentDuration;
       const realmLabel = formData.realm === 'Custom' ? formData.customRealm : (realmOptions.find(opt => opt.value === formData.realm)?.label || formData.realm);
       const paymentTypeLabel = formData.paymentType === 'Gold' ? 'فروش گلد' : 'پرداخت نقدی';
-      
-      const isToman = formData.paymentTime?.toLowerCase().includes('toman');
-      const currencyLabel = isToman ? '$' : (formData.paymentType === 'Naghdi' ? 'Rial' : 'Rial');
-      const priceCurrencyLabel = isToman ? '$' : 'Toman';
       
       const detailedMessage = `پرداخت با موفقیت ثبت شد!\n\n` +
         `شناسه: ${response.data.uniqueID}\n` +
         `نوع پرداخت: ${paymentTypeLabel}\n` +
         `Discord ID: ${formData.discordId.replace(/\s/g, '')}\n` +
         `Realm: ${realmLabel}\n` +
-        (formData.amount ? `مقدار: ${formData.amount} K\n` : '') +
-        (formData.price ? `قیمت: ${formData.price} ${priceCurrencyLabel}\n` : '') +
-        (formData.gheymat ? `قیمت (${currencyLabel}): ${formData.gheymat}\n` : '') +
-        (formData.paymentTime ? `مدت زمان: ${paymentDurationLabel}\n` : '') +
+        (formData.paymentType === 'Gold' ? (
+          `مقدار: ${formData.amount}\n` +
+          `قیمت واحد: ${formData.unitPrice} ${isUSDT ? '$' : 'Toman'}\n` +
+          `مبلغ کل: ${formData.totalAmount} ${isUSDT ? '$' : 'Rial'}\n`
+        ) : (
+          `مبلغ: ${formData.amount} ${isUSDT ? '$' : 'Rial'}\n`
+        )) +
+        (formData.paymentDuration ? `مدت زمان: ${paymentDurationLabel}\n` : '') +
         (formData.note ? `یادداشت: ${formData.note}\n` : '') +
         (sellerInfo.name ? `نام: ${sellerInfo.name}\n` : '') +
         (sellerInfo.shomareKart ? `شماره کارت: ${sellerInfo.shomareKart}\n` : '') +
@@ -307,12 +248,12 @@ const PaymentForm = ({ onSuccess }) => {
       setFormData({
         discordId: '',
         paymentType: '',
-        paymentTime: 'lahzei',
+        paymentDuration: 'lahzei',
         realm: '',
         customRealm: '',
         amount: '',
-        price: '',
-        gheymat: '',
+        unitPrice: '',
+        totalAmount: '',
         note: ''
       });
       setSellerInfo({
@@ -331,41 +272,57 @@ const PaymentForm = ({ onSuccess }) => {
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      setMessage(error.response?.data?.error || 'Error submitting payment');
+      setMessage(error.response?.data?.error || 'خطا در ثبت پرداخت. لطفاً دوباره تلاش کنید.');
     } finally {
       setIsSubmitting(false);
-      setTimeout(() => {
-        const submitButton = document.querySelector('button[type="submit"]');
-        if (submitButton) {
-          submitButton.disabled = false;
-        }
-      }, 3000);
     }
   };
 
-  const showPaymentTime = formData.paymentType === 'Naghdi' || formData.paymentType === 'Gold';
-  const showRealm = formData.paymentType === 'Naghdi' || formData.paymentType === 'Gold';
-  const showAmountPrice = formData.paymentType === 'Gold';
-  const showGheymat = formData.paymentType === 'Naghdi' || formData.paymentType === 'Gold';
+  const showRealm = formData.paymentType !== '';
+  const showPaymentFields = formData.paymentType !== '' && formData.realm !== '';
 
   return (
     <div className="container">
       <div className="box">
-        <h2 style={{ textAlign: 'right', direction: 'rtl' }}>فرم ثبت پرداختی ها</h2>
-        <form id="transactionForm" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="discordId">آیدی دیسکورد:</label>
+        <h2>ثبت پرداخت جدید</h2>
+        <form onSubmit={handleSubmit}>
+          <label htmlFor="discordId">Discord ID:</label>
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
             <input
               type="text"
               id="discordId"
               name="discordId"
               value={formData.discordId}
               onChange={handleInputChange}
+              onBlur={fetchSellerData}
+              required
               autoComplete="off"
+              style={{ flex: 1 }}
             />
-            <button type="button" onClick={fetchSellerData}>
-              دریافت اطلاعات کاربر
-            </button>
+            {userFound && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEdit(!showEdit);
+                  setShowAdd(false);
+                }}
+                className="btn-small btn-secondary"
+              >
+                {showEdit ? 'لغو ویرایش' : 'ویرایش اطلاعات'}
+              </button>
+            )}
+            {!userFound && formData.discordId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAdd(!showAdd);
+                  setShowEdit(false);
+                }}
+                className="btn-small btn-success"
+              >
+                {showAdd ? 'لغو' : 'افزودن کاربر'}
+              </button>
+            )}
           </div>
 
           <label htmlFor="paymentType">نوع پرداخت:</label>
@@ -374,27 +331,12 @@ const PaymentForm = ({ onSuccess }) => {
             name="paymentType"
             value={formData.paymentType}
             onChange={handleInputChange}
+            required
           >
-            <option value="">Select payment type</option>
-            <option value="Naghdi">پرداخت نقدی</option>
+            <option value="">انتخاب نوع پرداخت</option>
             <option value="Gold">فروش گلد</option>
+            <option value="Naghdi">پرداخت نقدی</option>
           </select>
-
-          {showPaymentTime && (
-            <>
-              <label htmlFor="paymentTime">زمان پرداخت:</label>
-              <select
-                id="paymentTime"
-                name="paymentTime"
-                value={formData.paymentTime}
-                onChange={handleInputChange}
-              >
-                {paymentDurationOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </>
-          )}
 
           {showRealm && (
             <>
@@ -413,7 +355,6 @@ const PaymentForm = ({ onSuccess }) => {
                     }));
                   }}
                   onBlur={(e) => {
-                    // If field is empty on blur, switch back to dropdown
                     if (!e.target.value.trim()) {
                       setFormData(prev => ({
                         ...prev,
@@ -423,14 +364,12 @@ const PaymentForm = ({ onSuccess }) => {
                     }
                   }}
                   onKeyDown={(e) => {
-                    // Allow Escape key to switch back to dropdown
                     if (e.key === 'Escape') {
                       setFormData(prev => ({
                         ...prev,
                         realm: '',
                         customRealm: ''
                       }));
-                      // Focus will return to the select after state update
                       setTimeout(() => {
                         const select = document.getElementById('realm');
                         if (select) select.focus();
@@ -457,76 +396,135 @@ const PaymentForm = ({ onSuccess }) => {
             </>
           )}
 
-          {showAmountPrice && (
+          {showPaymentFields && (
             <>
-              <label htmlFor="amount">مقدار (K):</label>
-              <input
-                type="text"
-                id="amount"
-                name="amount"
-                value={formData.amount}
+              <label htmlFor="paymentDuration">Payment Duration:</label>
+              <select
+                id="paymentDuration"
+                name="paymentDuration"
+                value={formData.paymentDuration}
                 onChange={handleInputChange}
-                autoComplete="off"
-                inputMode="decimal"
-                step="any"
-              />
+                required
+              >
+                {paymentDurationOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
 
-              <label htmlFor="price">
-                قیمت ({formData.paymentTime?.toLowerCase().includes('toman') ? '$' : 'Toman'}):
-              </label>
+              {/* Gold Payment Fields */}
+              {formData.paymentType === 'Gold' && (
+                <>
+                  <label htmlFor="amount">Amount:</label>
+                  <input
+                    type="text"
+                    id="amount"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    autoComplete="off"
+                    inputMode="decimal"
+                    step="any"
+                    required
+                  />
+
+                  <label htmlFor="unitPrice">
+                    Unit Price ({isUSDT ? '$' : 'Toman'}):
+                  </label>
+                  <input
+                    type="text"
+                    id="unitPrice"
+                    name="unitPrice"
+                    value={formData.unitPrice}
+                    onChange={handleInputChange}
+                    onBlur={handleUnitPriceBlur}
+                    autoComplete="off"
+                    inputMode="decimal"
+                    step="any"
+                    required
+                  />
+
+                  <label htmlFor="totalAmount">
+                    Total Amount ({isUSDT ? '$' : 'Rial'}):
+                  </label>
+                  <input
+                    type="text"
+                    id="totalAmount"
+                    name="totalAmount"
+                    value={formData.totalAmount}
+                    readOnly
+                    style={{ 
+                      backgroundColor: 'var(--bg-tertiary)', 
+                      cursor: 'not-allowed',
+                      opacity: 0.8
+                    }}
+                  />
+                  {!isUSDT && formData.totalAmount && (
+                    <div style={{ 
+                      fontSize: '0.875rem', 
+                      color: 'var(--text-tertiary)', 
+                      marginTop: '-1rem',
+                      marginBottom: '1.5rem',
+                      paddingLeft: '0.5rem'
+                    }}>
+                      = {formatNumber(parseFloat(formData.totalAmount.replace(/,/g, '')) / 10, true)} Toman
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Naghdi Payment Fields */}
+              {formData.paymentType === 'Naghdi' && (
+                <>
+                  <label htmlFor="amount">
+                    Amount ({isUSDT ? '$' : 'Rial'}):
+                  </label>
+                  <input
+                    type="text"
+                    id="amount"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    onBlur={handleAmountBlur}
+                    autoComplete="off"
+                    inputMode="decimal"
+                    step="any"
+                    required
+                  />
+                  {!isUSDT && formData.amount && (
+                    <div style={{ 
+                      fontSize: '0.875rem', 
+                      color: 'var(--text-tertiary)', 
+                      marginTop: '-1rem',
+                      marginBottom: '1.5rem',
+                      paddingLeft: '0.5rem'
+                    }}>
+                      = {formatNumber(parseFloat(formData.amount.replace(/,/g, '')) / 10, true)} Toman
+                    </div>
+                  )}
+                </>
+              )}
+
+              <label htmlFor="note">یادداشت:</label>
               <input
                 type="text"
-                id="price"
-                name="price"
-                value={formData.price}
+                id="note"
+                name="note"
+                value={formData.note}
                 onChange={handleInputChange}
-                autoComplete="off"
-                inputMode="decimal"
-                step="any"
               />
             </>
           )}
-
-          {showGheymat && (
-            <>
-              <label htmlFor="gheymat">
-                قیمت ({formData.paymentTime === 'usdt days' ? 'Rial' : 'Toman'}):
-              </label>
-              <input
-                type="text"
-                id="gheymat"
-                name="gheymat"
-                value={formData.gheymat}
-                onChange={handleGheymatChange}
-                onBlur={handleGheymatBlur}
-                autoComplete="off"
-                inputMode="decimal"
-                step="any"
-                readOnly={formData.paymentType === 'Gold'}
-                style={formData.paymentType === 'Gold' ? { backgroundColor: '#f5f5f5', cursor: 'not-allowed' } : {}}
-              />
-            </>
-          )}
-
-          <label htmlFor="note">یادداشت:</label>
-          <input
-            type="text"
-            id="note"
-            name="note"
-            value={formData.note}
-            onChange={handleInputChange}
-          />
 
           {message && (
             <div 
-              className={message.includes('Error') ? 'error' : 'success'}
+              className={message.includes('Error') || message.includes('خطا') ? 'error' : 'success'}
               style={{ whiteSpace: 'pre-line' }}
             >
               {message}
             </div>
           )}
 
-          <button type="submit" disabled={isSubmitting}>
+          <button type="submit" disabled={isSubmitting || !showPaymentFields}>
             {isSubmitting ? 'Submitting...' : 'ثبت'}
           </button>
         </form>
@@ -542,6 +540,7 @@ const PaymentForm = ({ onSuccess }) => {
           value={sellerInfo.shomareSheba}
           onChange={handleSellerInfoChange}
           autoComplete="off"
+          disabled={!showEdit && !showAdd}
         />
 
         <label htmlFor="shomareKart">شماره کارت:</label>
@@ -552,9 +551,10 @@ const PaymentForm = ({ onSuccess }) => {
           value={sellerInfo.shomareKart}
           onChange={handleSellerInfoChange}
           autoComplete="off"
+          disabled={!showEdit && !showAdd}
         />
 
-        <label htmlFor="name">نام و نام خانوادگی:</label>
+        <label htmlFor="name">نام:</label>
         <input
           type="text"
           id="name"
@@ -562,6 +562,7 @@ const PaymentForm = ({ onSuccess }) => {
           value={sellerInfo.name}
           onChange={handleSellerInfoChange}
           autoComplete="off"
+          disabled={!showEdit && !showAdd}
         />
 
         <label htmlFor="shomareTamas">شماره تماس:</label>
@@ -572,49 +573,22 @@ const PaymentForm = ({ onSuccess }) => {
           value={sellerInfo.shomareTamas}
           onChange={handleSellerInfoChange}
           autoComplete="off"
+          disabled={!showEdit && !showAdd}
         />
 
-        <label htmlFor="wallet">Wallet:</label>
+        <label htmlFor="rank">Wallet/Rank:</label>
         <input
           type="text"
-          id="wallet"
-          name="wallet"
+          id="rank"
+          name="rank"
           value={sellerInfo.rank}
-          onChange={(e) => setSellerInfo(prev => ({ ...prev, rank: e.target.value }))}
+          onChange={handleSellerInfoChange}
           autoComplete="off"
+          disabled={!showEdit && !showAdd}
         />
-
-        {showEdit && (
-          <label className="checkbox-container">
-            ویرایش
-            <input
-              type="checkbox"
-              id="edit"
-              name="edit"
-              checked={showEdit}
-              onChange={(e) => setShowEdit(e.target.checked)}
-            />
-            <span className="checkmark"></span>
-          </label>
-        )}
-
-        {showAdd && (
-          <label className="checkbox-container">
-            ثبت کاربر
-            <input
-              type="checkbox"
-              id="add"
-              name="add"
-              checked={showAdd}
-              onChange={(e) => setShowAdd(e.target.checked)}
-            />
-            <span className="checkmark"></span>
-          </label>
-        )}
       </div>
     </div>
   );
 };
 
 export default PaymentForm;
-
