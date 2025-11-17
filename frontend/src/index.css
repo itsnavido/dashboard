@@ -156,6 +156,34 @@ h3 {
   }
 }
 
+/* Payment Form Container - Full width display */
+.payment-form-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 100%;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .payment-form-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .payment-form-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    max-width: 1600px;
+  }
+}
+
+.payment-form-box {
+  width: 100%;
+  min-width: 0;
+}
+
 /* Box/Card - Premium glassmorphism */
 .box {
   background: var(--bg-card);

@@ -281,9 +281,24 @@ const PaymentForm = ({ onSuccess }) => {
   const showRealm = formData.paymentType !== '';
   const showPaymentFields = formData.paymentType !== '' && formData.realm !== '';
 
+  const handleCopyMessage = () => {
+    if (message) {
+      navigator.clipboard.writeText(message).then(() => {
+        // Show temporary feedback
+        const originalMessage = message;
+        setMessage(originalMessage + '\n\n✓ Copied to clipboard!');
+        setTimeout(() => {
+          setMessage(originalMessage);
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+      });
+    }
+  };
+
   return (
-    <div className="container">
-      <div className="box">
+    <div className="container payment-form-container">
+      <div className="box payment-form-box">
         <h2>ثبت پرداخت جدید</h2>
         <form onSubmit={handleSubmit}>
           <label htmlFor="discordId">Discord ID:</label>
@@ -518,9 +533,45 @@ const PaymentForm = ({ onSuccess }) => {
           {message && (
             <div 
               className={message.includes('Error') || message.includes('خطا') ? 'error' : 'success'}
-              style={{ whiteSpace: 'pre-line' }}
+              style={{ whiteSpace: 'pre-line', position: 'relative', paddingRight: message.includes('Error') || message.includes('خطا') ? '1.5rem' : '5rem' }}
             >
               {message}
+              {!message.includes('Error') && !message.includes('خطا') && (
+                <button
+                  type="button"
+                  onClick={handleCopyMessage}
+                  className="copy-button"
+                  title="Copy to clipboard"
+                  style={{
+                    position: 'absolute',
+                    top: '0.75rem',
+                    right: '0.75rem',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '4px',
+                    padding: '0.5rem 0.75rem',
+                    cursor: 'pointer',
+                    color: 'inherit',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    transition: 'all 0.2s ease',
+                    backdropFilter: 'blur(10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                    e.target.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.transform = 'scale(1)';
+                  }}
+                >
+                  📋 Copy
+                </button>
+              )}
             </div>
           )}
 
