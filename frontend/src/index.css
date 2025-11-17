@@ -434,8 +434,7 @@ button:focus {
 }
 
 table {
-  width: auto;
-  min-width: 100%;
+  width: 100%;
   border-collapse: collapse;
   background-color: transparent;
   table-layout: auto;
@@ -448,21 +447,25 @@ th {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  padding: 1.5rem 1.25rem;
+  padding: 1rem 0.75rem;
   text-align: left;
   border-bottom: 2px solid var(--border-color);
   white-space: nowrap;
   position: sticky;
   top: 0;
   z-index: 10;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 td {
-  padding: 1.5rem 1.25rem;
+  padding: 1rem 0.75rem;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-secondary);
   font-size: 0.875rem;
   transition: all 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 tr:last-child td {
@@ -481,11 +484,74 @@ tbody tr {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Action column - ensure it's not cut off */
+/* Action column - ensure it's not cut off and sticky */
 th:last-child,
 td:last-child {
+  width: 150px;
   min-width: 150px;
+  max-width: 150px;
   white-space: nowrap;
+  position: sticky;
+  right: 0;
+  background-color: var(--bg-card);
+  z-index: 5;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+  overflow: visible;
+  text-overflow: clip;
+}
+
+th:last-child {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  z-index: 15;
+}
+
+tbody tr:hover td:last-child {
+  background-color: var(--bg-hover);
+}
+
+/* Optimize column widths - use max-width to prevent excessive expansion */
+th:first-child,
+td:first-child {
+  max-width: 50px;
+  padding: 1rem 0.5rem;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  max-width: 100px;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+  max-width: 140px;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+  max-width: 160px;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+  max-width: 120px;
+}
+
+th:nth-child(6),
+td:nth-child(6),
+th:nth-child(7),
+td:nth-child(7),
+th:nth-child(8),
+td:nth-child(8) {
+  max-width: 120px;
+}
+
+th:nth-child(9),
+td:nth-child(9),
+th:nth-child(10),
+td:nth-child(10),
+th:nth-child(11),
+td:nth-child(11) {
+  max-width: 130px;
 }
 
 /* Login - Premium design */
@@ -605,16 +671,18 @@ td:last-child {
   }
 
   table {
-    min-width: 100%;
+    width: 100%;
+    table-layout: auto;
   }
   
   th:last-child,
   td:last-child {
+    width: 140px;
     min-width: 140px;
   }
 
   th, td {
-    padding: 1.25rem 1rem;
+    padding: 0.875rem 0.5rem;
     font-size: 0.8125rem;
   }
 }
