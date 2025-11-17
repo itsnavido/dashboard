@@ -207,7 +207,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 <th onClick={() => handleSort('admin')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                   Admin {sortColumn === 'admin' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th>Actions</th>
+                <th style={{ minWidth: '150px', whiteSpace: 'nowrap' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -288,10 +288,11 @@ const PaymentList = ({ onEdit, onDelete }) => {
                         <td style={textColor ? { color: textColor } : {}}>{payment.paymentDuration}</td>
                         <td style={textColor ? { color: textColor } : {}}>{formatTimeLeft(payment.timeLeftToPay)}</td>
                         <td style={textColor ? { color: textColor } : {}}>{payment.admin}</td>
-                        <td>
+                        <td style={{ minWidth: '150px', whiteSpace: 'nowrap' }}>
                           <button
                             className="btn-small btn-secondary"
                             onClick={() => onEdit && onEdit(payment)}
+                            style={{ marginRight: '0.5rem' }}
                           >
                             Edit
                           </button>
