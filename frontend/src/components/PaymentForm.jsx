@@ -234,7 +234,7 @@ const PaymentForm = ({ onSuccess }) => {
         (formData.paymentType === 'Gold' ? (
           `مقدار: ${formData.amount}\n` +
           `قیمت واحد: ${formData.unitPrice} ${isUSDT ? '$' : 'Toman'}\n` +
-          `مبلغ کل: ${formData.totalAmount} ${isUSDT ? '$' : 'Rial'}\n`
+          `مبلغ کل: ${formData.totalAmount} ${isUSDT ? '$' : 'Toman'}\n`
         ) : (
           `مبلغ: ${formData.amount} ${isUSDT ? '$' : 'Rial'}\n`
         )) +
@@ -459,7 +459,7 @@ const PaymentForm = ({ onSuccess }) => {
                   />
 
                   <label htmlFor="totalAmount">
-                    Total Amount ({isUSDT ? '$' : 'Rial'}):
+                    Total Amount ({isUSDT ? '$' : 'Toman'}):
                   </label>
                   <input
                     type="text"
