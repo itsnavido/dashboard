@@ -457,8 +457,8 @@ const PaymentList = ({ onEdit, onDelete }) => {
               )
             ) : (
               <>
-                <div className="rounded-md border w-full">
-                  <div className="[&>div]:overflow-hidden">
+                <div className="rounded-md border w-full overflow-hidden">
+                  <div className="w-full [&_div]:!overflow-hidden">
                     <Table className="w-full">
                       <TableHeader>
                         <TableRow>
