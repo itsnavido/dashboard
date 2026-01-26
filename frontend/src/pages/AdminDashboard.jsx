@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import api from '@/services/api';
 import { Link } from 'react-router-dom';
 import { CreditCard, DollarSign, TrendingUp, Users, Plus } from 'lucide-react';
-import { formatNumber } from '@/utils';
+import { formatNumber, isPaymentPaid } from '@/utils';
 import { toast } from 'react-hot-toast';
 
 function AdminDashboard() {
@@ -31,7 +31,7 @@ function AdminDashboard() {
 
   const quickMarkPaid = async (paymentId) => {
     try {
-      await api.patch(`/payments/${paymentId}/status`, { processed: true });
+      await api.patch(`/payments/${paymentId}/status`, { columnQ: true });
       toast.success('Payment marked as paid');
       // Refetch payments
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -159,11 +159,11 @@ function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{payment.uniqueID}</span>
                           <span className={`px-2 py-1 text-xs rounded-full ${
-                            payment.processed
+                            isPaymentPaid(payment.columnQ)
                               ? 'bg-green-500/20 text-green-500'
                               : 'bg-yellow-500/20 text-yellow-500'
                           }`}>
-                            {payment.processed ? 'Paid' : 'Unpaid'}
+                            {isPaymentPaid(payment.columnQ) ? 'Paid' : 'Unpaid'}
                           </span>
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
@@ -176,7 +176,7 @@ function AdminDashboard() {
                             {formatNumber(parseFloat(payment.gheymat || 0))} Rial
                           </div>
                         </div>
-                        {!payment.processed && (
+                        {!isPaymentPaid(payment.columnQ) && (
                           <Button
                             size="sm"
                             onClick={() => quickMarkPaid(payment.id)}

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import api from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
-import { formatNumber } from '@/utils';
+import { formatNumber, isPaymentPaid } from '@/utils';
 import { CreditCard, DollarSign, Clock } from 'lucide-react';
 
 function UserDashboard() {
@@ -23,13 +23,13 @@ function UserDashboard() {
   const stats = payments
     ? {
         totalPayments: payments.length,
-        paidPayments: payments.filter(p => p.processed === true).length,
-        unpaidPayments: payments.filter(p => p.processed !== true).length,
+        paidPayments: payments.filter(p => isPaymentPaid(p.columnQ)).length,
+        unpaidPayments: payments.filter(p => !isPaymentPaid(p.columnQ)).length,
         totalPaid: payments
-          .filter(p => p.processed === true)
+          .filter(p => isPaymentPaid(p.columnQ))
           .reduce((sum, p) => sum + (parseFloat(p.gheymat || 0) || 0), 0),
         totalPending: payments
-          .filter(p => p.processed !== true)
+          .filter(p => !isPaymentPaid(p.columnQ))
           .reduce((sum, p) => sum + (parseFloat(p.gheymat || 0) || 0), 0),
       }
     : {
@@ -132,9 +132,9 @@ function UserDashboard() {
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium">{payment.uniqueID}</span>
                           <Badge
-                            variant={payment.processed ? 'success' : 'warning'}
+                            variant={isPaymentPaid(payment.columnQ) ? 'success' : 'warning'}
                           >
-                            {payment.processed ? 'Paid' : 'Unpaid'}
+                            {isPaymentPaid(payment.columnQ) ? 'Paid' : 'Unpaid'}
                           </Badge>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">

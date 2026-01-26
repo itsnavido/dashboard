@@ -492,10 +492,10 @@ router.put('/:id', requireAuth, async (req, res) => {
 router.patch('/:id/status', requireAuth, async (req, res) => {
   try {
     const rowIndex = parseInt(req.params.id) - 4;
-    const { processed } = req.body;
+    const { columnQ } = req.body;
     
-    if (typeof processed !== 'boolean') {
-      return res.status(400).json({ error: 'processed must be a boolean' });
+    if (typeof columnQ !== 'boolean' && columnQ !== undefined) {
+      return res.status(400).json({ error: 'columnQ must be a boolean' });
     }
     
     const rows = await sheets.getRows(config.sheetNames.payment);
@@ -513,29 +513,49 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
       return rawData[colIndex] || '';
     };
     
-    const currentPayment = {
-      uniqueID: getValue(cols.uniqueID),
-      processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
+    // Check if columnQ is currently TRUE
+    const isColumnQTrue = (value) => {
+      return value === true || 
+             value === 'TRUE' || 
+             value === 'true' ||
+             value === 'True' ||
+             value === 1 ||
+             value === '1' ||
+             (typeof value === 'string' && value.trim().toUpperCase() === 'TRUE');
     };
     
-    // Update status
+    const currentColumnQ = getValue(cols.columnQ);
+    const currentPayment = {
+      uniqueID: getValue(cols.uniqueID),
+      columnQ: isColumnQTrue(currentColumnQ),
+    };
+    
+    // Update status - use columnQ if provided, otherwise fallback to processed for backward compatibility
     const updateData = {};
-    updateData[cols.processed] = processed;
+    if (columnQ !== undefined) {
+      updateData[cols.columnQ] = columnQ ? 'TRUE' : 'FALSE';
+    } else if (req.body.processed !== undefined) {
+      // Backward compatibility: if processed is provided, update columnQ
+      updateData[cols.columnQ] = req.body.processed ? 'TRUE' : 'FALSE';
+    } else {
+      return res.status(400).json({ error: 'columnQ or processed must be provided' });
+    }
     
     await sheets.updateRow(row, updateData, config.sheetNames.payment, rowIndex);
     
     // Log the change
-    if (processed !== currentPayment.processed) {
+    const newColumnQ = columnQ !== undefined ? columnQ : req.body.processed;
+    if (newColumnQ !== currentPayment.columnQ) {
       const updatedBy = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
       await sheets.addPaymentLog(currentPayment.uniqueID, 'edit', updatedBy, {
-        processed: { old: currentPayment.processed, new: processed }
+        columnQ: { old: currentPayment.columnQ, new: newColumnQ }
       });
     }
     
     // Invalidate cache
     cache.invalidatePaymentList();
     
-    res.json({ message: 'Payment status updated successfully', processed });
+    res.json({ message: 'Payment status updated successfully', columnQ: newColumnQ });
   } catch (error) {
     console.error('Error updating payment status:', error);
     res.status(500).json({ error: 'Internal server error' });

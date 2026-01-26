@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
-import { formatNumber } from '../utils';
+import { formatNumber, isPaymentPaid } from '../utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -197,21 +197,11 @@ const PaymentList = ({ onEdit, onDelete }) => {
     }
   };
 
-  const isColumnQTrue = (columnQValue) => {
-    return columnQValue === true || 
-           columnQValue === 'TRUE' || 
-           columnQValue === 'true' ||
-           columnQValue === 'True' ||
-           columnQValue === 1 ||
-           columnQValue === '1' ||
-           (typeof columnQValue === 'string' && columnQValue.trim().toUpperCase() === 'TRUE');
-  };
-
   const getRowColor = (payment) => {
     const timeLeftStr = payment.timeLeftToPay || '';
     const isNegative = timeLeftStr.toString().trim().startsWith('-') || 
                      (timeLeftStr && !isNaN(parseFloat(timeLeftStr)) && parseFloat(timeLeftStr) < 0);
-    const isPaid = isColumnQTrue(payment.columnQ);
+    const isPaid = isPaymentPaid(payment.columnQ);
     const isLahzei = payment.paymentDuration && 
                     payment.paymentDuration.toString().toLowerCase().includes('lahzei');
     
@@ -226,7 +216,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
     const isExpanded = expandedPayments.has(payment.id);
     const logs = paymentLogs[payment.uniqueID] || [];
     const rowColor = getRowColor(payment);
-    const isPaid = isColumnQTrue(payment.columnQ);
+    const isPaid = isPaymentPaid(payment.columnQ);
 
     return (
       <Card className="mb-4">
@@ -579,7 +569,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                         const isExpanded = expandedPayments.has(payment.id);
                         const logs = paymentLogs[payment.uniqueID] || [];
                         const rowColor = getRowColor(payment);
-                        const isPaid = isColumnQTrue(payment.columnQ);
+                        const isPaid = isPaymentPaid(payment.columnQ);
 
                         return (
                           <React.Fragment key={payment.id}>

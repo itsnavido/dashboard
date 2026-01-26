@@ -31,3 +31,14 @@ export function formatDate(date) {
   });
 }
 
+// Check if payment is paid based on columnQ value
+export function isPaymentPaid(columnQValue) {
+  return columnQValue === true || 
+         columnQValue === 'TRUE' || 
+         columnQValue === 'true' ||
+         columnQValue === 'True' ||
+         columnQValue === 1 ||
+         columnQValue === '1' ||
+         (typeof columnQValue === 'string' && columnQValue.trim().toUpperCase() === 'TRUE');
+}
+

@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import api from '@/services/api';
-import { formatNumber } from '@/utils';
+import { formatNumber, isPaymentPaid } from '@/utils';
 import { toast } from 'react-hot-toast';
 import { Search, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import PaymentForm from '@/components/PaymentForm';
@@ -39,8 +39,8 @@ function AdminPayments() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, processed }) => {
-      await api.patch(`/payments/${id}/status`, { processed });
+    mutationFn: async ({ id, columnQ }) => {
+      await api.patch(`/payments/${id}/status`, { columnQ });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
@@ -71,18 +71,20 @@ function AdminPayments() {
       payment.uniqueID?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.realm?.toLowerCase().includes(searchTerm.toLowerCase());
 
+    const isPaid = isPaymentPaid(payment.columnQ);
     const matchesStatus =
       statusFilter === 'all' ||
-      (statusFilter === 'paid' && payment.processed === true) ||
-      (statusFilter === 'unpaid' && payment.processed !== true);
+      (statusFilter === 'paid' && isPaid) ||
+      (statusFilter === 'unpaid' && !isPaid);
 
     return matchesSearch && matchesStatus;
   });
 
   const handleStatusToggle = (payment) => {
+    const isCurrentlyPaid = isPaymentPaid(payment.columnQ);
     updateStatusMutation.mutate({
       id: payment.id,
-      processed: !payment.processed,
+      columnQ: !isCurrentlyPaid,
     });
   };
 
@@ -242,11 +244,11 @@ function AdminPayments() {
                           <TableCell>{payment.paymentDuration}</TableCell>
                           <TableCell>
                             <Badge
-                              variant={payment.processed ? 'success' : 'warning'}
+                              variant={isPaymentPaid(payment.columnQ) ? 'success' : 'warning'}
                               className="cursor-pointer"
                               onClick={() => handleStatusToggle(payment)}
                             >
-                              {payment.processed ? (
+                              {isPaymentPaid(payment.columnQ) ? (
                                 <>
                                   <CheckCircle2 className="h-3 w-3 mr-1" />
                                   Paid
