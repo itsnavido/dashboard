@@ -207,13 +207,16 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 <th onClick={() => handleSort('admin')} style={{ cursor: 'pointer', userSelect: 'none' }}>
                   Admin {sortColumn === 'admin' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
+                <th onClick={() => handleSort('columnQ')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                  Status {sortColumn === 'columnQ' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
                 <th style={{ minWidth: '150px', whiteSpace: 'nowrap' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="12" style={{ textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="13" style={{ textAlign: 'center', padding: '40px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
                       <div className="spinner spinner-small">
                         <div className="spinner-ring"></div>
@@ -227,7 +230,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 </tr>
               ) : paginatedPayments.length === 0 ? (
                 <tr>
-                  <td colSpan="12" style={{ textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="13" style={{ textAlign: 'center', padding: '40px' }}>
                     {searchTerm ? 'No payments found matching your search' : 'No payments found'}
                   </td>
                 </tr>
@@ -296,6 +299,26 @@ const PaymentList = ({ onEdit, onDelete }) => {
                         <td style={textColor ? { color: textColor } : {}}>{payment.paymentDuration}</td>
                         <td style={textColor ? { color: textColor } : {}}>{formatTimeLeft(payment.timeLeftToPay)}</td>
                         <td style={textColor ? { color: textColor } : {}}>{payment.admin}</td>
+                        <td style={{ minWidth: '100px', whiteSpace: 'nowrap' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: 'var(--radius)',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              backgroundColor: isColumnQTrue 
+                                ? 'rgba(34, 197, 94, 0.15)' 
+                                : 'rgba(239, 68, 68, 0.15)',
+                              color: isColumnQTrue 
+                                ? '#22c55e' 
+                                : '#ef4444',
+                              border: `1px solid ${isColumnQTrue ? '#22c55e' : '#ef4444'}`,
+                            }}
+                          >
+                            {isColumnQTrue ? '✓ Paid' : '✕ Unpaid'}
+                          </span>
+                        </td>
                         <td style={{ minWidth: '150px', whiteSpace: 'nowrap' }}>
                           <button
                             className="btn-small btn-secondary"
@@ -314,7 +337,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                       </tr>
                       {isExpanded && (
                         <tr>
-                          <td colSpan="12" style={{ padding: '1rem', backgroundColor: '#f5f5f5' }}>
+                          <td colSpan="13" style={{ padding: '1rem', backgroundColor: '#f5f5f5' }}>
                             <div style={{ marginLeft: '2rem' }}>
                               <h4 style={{ marginBottom: '0.5rem', fontSize: '14px', fontWeight: 'bold' }}>Activity Log</h4>
                               {logs.length === 0 ? (

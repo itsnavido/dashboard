@@ -50,7 +50,13 @@ router.get('/', requireAuth, async (req, res) => {
         uniqueID: getValue(cols.uniqueID),
         admin: getValue(cols.admin),
         processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
-        columnQ: getValue(cols.columnQ) === true || getValue(cols.columnQ) === 'TRUE' || getValue(cols.columnQ) === 'true',
+        columnQ: (() => {
+          const value = getValue(cols.columnQ);
+          if (value === true || value === 'TRUE' || value === 'true' || value === 'True' || value === 1 || value === '1') {
+            return true;
+          }
+          return false;
+        })(),
         timeLeftToPay: getValue(cols.timeLeftToPay) || ''
       };
     });
