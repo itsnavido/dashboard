@@ -605,6 +605,8 @@ const PaymentForm = ({ onSuccess }) => {
               onChange={handleSellerInfoChange}
               autoComplete="off"
               disabled={!showEdit && !showAdd}
+              dir="ltr"
+              style={{ direction: 'ltr', textAlign: 'left' }}
             />
           </div>
 

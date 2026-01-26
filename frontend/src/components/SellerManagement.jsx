@@ -242,6 +242,8 @@ const SellerManagement = () => {
                         value={formData.card}
                         onChange={handleInputChange}
                         autoComplete="off"
+                        dir="ltr"
+                        style={{ direction: 'ltr', textAlign: 'left' }}
                       />
                     </div>
 

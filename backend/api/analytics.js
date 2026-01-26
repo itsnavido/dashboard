@@ -84,13 +84,25 @@ router.get('/overview', requireAdmin, async (req, res) => {
       });
     }
     
+    // Helper function to check if payment is paid based on columnQ
+    const isPaymentPaid = (columnQValue) => {
+      if (columnQValue === true || columnQValue === 1) {
+        return true;
+      }
+      if (typeof columnQValue === 'string') {
+        const normalizedValue = columnQValue.trim().toUpperCase();
+        return normalizedValue === 'TRUE' || normalizedValue === '1' || normalizedValue === 'YES' || normalizedValue === 'Y';
+      }
+      return false;
+    };
+    
     const totalPayments = filteredPayments.length;
-    const paidPayments = filteredPayments.filter(p => p.processed === true).length;
+    const paidPayments = filteredPayments.filter(p => isPaymentPaid(p.columnQ)).length;
     const unpaidPayments = totalPayments - paidPayments;
     
     // Calculate total revenue
     const totalRevenue = filteredPayments
-      .filter(p => p.processed === true)
+      .filter(p => isPaymentPaid(p.columnQ))
       .reduce((sum, p) => {
         const amount = parseFloat(String(p.gheymat || '').replace(/,/g, '')) || 0;
         return sum + (isNaN(amount) ? 0 : amount);
@@ -219,7 +231,18 @@ router.get('/realm', requireAdmin, async (req, res) => {
       realmStats[realm].totalPayments++;
       const amount = parseFloat(String(payment.gheymat || '').replace(/,/g, '')) || 0;
       
-      if (payment.processed === true) {
+      // Helper function to check if payment is paid
+      const isPaid = (() => {
+        const val = payment.columnQ;
+        if (val === true || val === 1) return true;
+        if (typeof val === 'string') {
+          const normalized = val.trim().toUpperCase();
+          return normalized === 'TRUE' || normalized === '1' || normalized === 'YES' || normalized === 'Y';
+        }
+        return false;
+      })();
+      
+      if (isPaid) {
         realmStats[realm].paidPayments++;
         realmStats[realm].paidAmount += isNaN(amount) ? 0 : amount;
       } else {
@@ -326,8 +349,20 @@ router.get('/status', requireAdmin, async (req, res) => {
       unpaid: 0,
     };
     
+    // Helper function to check if payment is paid
+    const isPaymentPaid = (columnQValue) => {
+      if (columnQValue === true || columnQValue === 1) {
+        return true;
+      }
+      if (typeof columnQValue === 'string') {
+        const normalizedValue = columnQValue.trim().toUpperCase();
+        return normalizedValue === 'TRUE' || normalizedValue === '1' || normalizedValue === 'YES' || normalizedValue === 'Y';
+      }
+      return false;
+    };
+    
     payments.forEach(payment => {
-      if (payment.processed === true) {
+      if (isPaymentPaid(payment.columnQ)) {
         statusCounts.paid++;
       } else {
         statusCounts.unpaid++;
