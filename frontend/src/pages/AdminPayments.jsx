@@ -195,21 +195,21 @@ function AdminPayments() {
                 {filteredPayments?.length || 0} Payment{filteredPayments?.length !== 1 ? 's' : ''}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {isLoading ? (
-                <div className="space-y-2">
+                <div className="space-y-2 p-6">
                   <Skeleton className="h-12 w-full" />
                   {[...Array(5)].map((_, i) => (
                     <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
               ) : filteredPayments?.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-muted-foreground p-6">
                   No payments found
                 </div>
               ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
+                <div className="rounded-md border w-full">
+                  <Table className="w-full" noScroll>
                     <TableHeader>
                       <TableRow>
                         <TableHead>ID</TableHead>
