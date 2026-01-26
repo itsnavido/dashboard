@@ -457,194 +457,195 @@ const PaymentList = ({ onEdit, onDelete }) => {
               )
             ) : (
               <>
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12"></TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('uniqueID')}
-                        >
-                          <div className="flex items-center">
-                            ID
-                            {getSortIcon('uniqueID')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('time')}
-                        >
-                          <div className="flex items-center">
-                            Time
-                            {getSortIcon('time')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('userid')}
-                        >
-                          <div className="flex items-center">
-                            Discord ID
-                            {getSortIcon('userid')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('realm')}
-                        >
-                          <div className="flex items-center">
-                            Realm
-                            {getSortIcon('realm')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('amount')}
-                        >
-                          <div className="flex items-center">
-                            Amount
-                            {getSortIcon('amount')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('price')}
-                        >
-                          <div className="flex items-center">
-                            Price
-                            {getSortIcon('price')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('gheymat')}
-                        >
-                          <div className="flex items-center">
-                            Total
-                            {getSortIcon('gheymat')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('paymentDuration')}
-                        >
-                          <div className="flex items-center">
-                            Duration
-                            {getSortIcon('paymentDuration')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('timeLeftToPay')}
-                        >
-                          <div className="flex items-center">
-                            Time Left
-                            {getSortIcon('timeLeftToPay')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('admin')}
-                        >
-                          <div className="flex items-center">
-                            Admin
-                            {getSortIcon('admin')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleSort('columnQ')}
-                        >
-                          <div className="flex items-center">
-                            Status
-                            {getSortIcon('columnQ')}
-                          </div>
-                        </TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedPayments.map((payment) => {
-                        const isExpanded = expandedPayments.has(payment.id);
-                        const logs = paymentLogs[payment.uniqueID] || [];
-                        const rowColor = getRowColor(payment);
-                        const isPaid = isPaymentPaid(payment.columnQ);
+                <div className="rounded-md border w-full">
+                  <div className="[&>div]:overflow-hidden">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[80px]"
+                            onClick={() => handleSort('uniqueID')}
+                          >
+                            <div className="flex items-center truncate">
+                              ID
+                              {getSortIcon('uniqueID')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[120px]"
+                            onClick={() => handleSort('time')}
+                          >
+                            <div className="flex items-center truncate">
+                              Time
+                              {getSortIcon('time')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden lg:table-cell"
+                            onClick={() => handleSort('userid')}
+                          >
+                            <div className="flex items-center truncate">
+                              Discord ID
+                              {getSortIcon('userid')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[80px]"
+                            onClick={() => handleSort('realm')}
+                          >
+                            <div className="flex items-center truncate">
+                              Realm
+                              {getSortIcon('realm')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden xl:table-cell"
+                            onClick={() => handleSort('amount')}
+                          >
+                            <div className="flex items-center truncate">
+                              Amount
+                              {getSortIcon('amount')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden xl:table-cell"
+                            onClick={() => handleSort('price')}
+                          >
+                            <div className="flex items-center truncate">
+                              Price
+                              {getSortIcon('price')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
+                            onClick={() => handleSort('gheymat')}
+                          >
+                            <div className="flex items-center truncate">
+                              Total
+                              {getSortIcon('gheymat')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[90px] hidden lg:table-cell"
+                            onClick={() => handleSort('paymentDuration')}
+                          >
+                            <div className="flex items-center truncate">
+                              Duration
+                              {getSortIcon('paymentDuration')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden xl:table-cell"
+                            onClick={() => handleSort('timeLeftToPay')}
+                          >
+                            <div className="flex items-center truncate">
+                              Time Left
+                              {getSortIcon('timeLeftToPay')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden lg:table-cell"
+                            onClick={() => handleSort('admin')}
+                          >
+                            <div className="flex items-center truncate">
+                              Admin
+                              {getSortIcon('admin')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
+                            onClick={() => handleSort('columnQ')}
+                          >
+                            <div className="flex items-center truncate">
+                              Status
+                              {getSortIcon('columnQ')}
+                            </div>
+                          </TableHead>
+                          <TableHead className="text-right min-w-[140px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedPayments.map((payment) => {
+                          const isExpanded = expandedPayments.has(payment.id);
+                          const logs = paymentLogs[payment.uniqueID] || [];
+                          const rowColor = getRowColor(payment);
+                          const isPaid = isPaymentPaid(payment.columnQ);
 
-                        return (
-                          <React.Fragment key={payment.id}>
-                            <TableRow className={rowColor ? `${rowColor} hover:${rowColor}` : ''}>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => togglePaymentExpansion(payment.id, payment.uniqueID)}
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDownIcon className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TableCell>
-                              <TableCell className={`font-medium ${rowColor || ''}`}>
-                                {payment.uniqueID || payment.id}
-                              </TableCell>
-                              <TableCell className={rowColor || ''}>{payment.time}</TableCell>
-                              <TableCell className={rowColor || ''}>{payment.userid}</TableCell>
-                              <TableCell className={rowColor || ''}>{payment.realm}</TableCell>
-                              <TableCell className={rowColor || ''}>{payment.amount}</TableCell>
-                              <TableCell className={rowColor || ''}>{payment.price}</TableCell>
-                              <TableCell className={rowColor || ''}>
-                                {payment.gheymat ? (
-                                  <>
-                                    {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
-                                    {payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial'}
-                                  </>
-                                ) : ''}
-                              </TableCell>
-                              <TableCell className={rowColor || ''}>{payment.paymentDuration}</TableCell>
-                              <TableCell className={rowColor || ''}>
-                                {formatTimeLeft(payment.timeLeftToPay)}
-                              </TableCell>
-                              <TableCell className={rowColor || ''}>{payment.admin}</TableCell>
-                              <TableCell>
-                                <Badge variant={isPaid ? 'success' : 'warning'} className="text-xs">
-                                  {isPaid ? (
-                                    <>
-                                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                                      Paid
-                                    </>
-                                  ) : (
-                                    <>
-                                      <XCircle className="h-3 w-3 mr-1" />
-                                      Unpaid
-                                    </>
-                                  )}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
+                          return (
+                            <React.Fragment key={payment.id}>
+                              <TableRow className={rowColor ? `${rowColor} hover:${rowColor}` : ''}>
+                                <TableCell className="w-12">
                                   <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => onEdit && onEdit(payment)}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => togglePaymentExpansion(payment.id, payment.uniqueID)}
                                   >
-                                    <Edit className="h-4 w-4 mr-1" />
-                                    Edit
+                                    {isExpanded ? (
+                                      <ChevronDownIcon className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4" />
+                                    )}
                                   </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => handleDeleteClick(payment)}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-1" />
-                                    Delete
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
+                                </TableCell>
+                                <TableCell className={`font-medium ${rowColor || ''} truncate`}>
+                                  {payment.uniqueID || payment.id}
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate`}>{payment.time}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.userid}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate`}>{payment.realm}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.amount}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.price}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate`}>
+                                  {payment.gheymat ? (
+                                    <>
+                                      {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
+                                      {payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial'}
+                                    </>
+                                  ) : ''}
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentDuration}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>
+                                  {formatTimeLeft(payment.timeLeftToPay)}
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.admin}</TableCell>
+                                <TableCell>
+                                  <Badge variant={isPaid ? 'success' : 'warning'} className="text-xs">
+                                    {isPaid ? (
+                                      <>
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        Paid
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                        Unpaid
+                                      </>
+                                    )}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => onEdit && onEdit(payment)}
+                                    >
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeleteClick(payment)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
                             {isExpanded && (
                               <TableRow>
                                 <TableCell colSpan={13} className="bg-muted/50">
@@ -692,8 +693,9 @@ const PaymentList = ({ onEdit, onDelete }) => {
                           </React.Fragment>
                         );
                       })}
-                    </TableBody>
-                  </Table>
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
 
                 {/* Pagination */}
