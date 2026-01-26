@@ -719,6 +719,24 @@ td:nth-child(11) {
   border-color: var(--primary);
 }
 
+/* Standalone btn-secondary for buttons without btn-small */
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
+
 .btn-small.btn-danger {
   background: var(--danger);
 }
