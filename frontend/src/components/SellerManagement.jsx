@@ -132,10 +132,10 @@ const SellerManagement = () => {
   };
 
   return (
-    <div className="container">
+    <div className="container" style={{ maxWidth: '900px', gridTemplateColumns: '1fr' }}>
       <div className="box">
-        <h2>Seller Management</h2>
-        <p style={{ marginBottom: '1.5rem', color: 'var(--text-color-medium)' }}>
+        <h2 style={{ color: 'var(--text-primary)' }}>Seller Management</h2>
+        <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
           Search for a user by Discord ID to view or edit their information
         </p>
 
@@ -171,9 +171,9 @@ const SellerManagement = () => {
         )}
 
         {sellerInfo && (
-          <div className="box" style={{ background: 'var(--gray-50)', marginTop: '1.5rem' }}>
+          <div className="box" style={{ background: 'var(--bg-tertiary)', marginTop: '1.5rem', border: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3>
+              <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>
                 {sellerInfo.exists ? 'Edit Seller Information' : 'Add New Seller Information'}
               </h3>
               <button onClick={handleReset} className="btn-small btn-secondary">
@@ -181,8 +181,8 @@ const SellerManagement = () => {
               </button>
             </div>
 
-            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#fff', borderRadius: '0.5rem' }}>
-              <strong>Discord ID:</strong> {sellerInfo.discordId}
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Discord ID:</strong> <span style={{ color: 'var(--text-secondary)' }}>{sellerInfo.discordId}</span>
             </div>
 
             <form onSubmit={handleSave}>
@@ -237,10 +237,10 @@ const SellerManagement = () => {
               />
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                <button type="submit" disabled={saving}>
+                <button type="submit" disabled={saving} className="btn-small">
                   {saving ? 'Saving...' : sellerInfo.exists ? 'Update' : 'Create'}
                 </button>
-                <button type="button" onClick={handleReset} className="btn-secondary">
+                <button type="button" onClick={handleReset} className="btn-small btn-secondary">
                   Cancel
                 </button>
               </div>
