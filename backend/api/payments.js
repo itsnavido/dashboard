@@ -13,7 +13,11 @@ const router = express.Router();
 // Get all payments
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const cacheKey = 'all';
+    const isAdmin = req.user?.role === 'Admin';
+    const userId = req.user?.id;
+    
+    // For non-admin users, filter by their Discord ID
+    const cacheKey = isAdmin ? 'all' : `user_${userId}`;
     const cached = cache.getPaymentList(cacheKey);
     if (cached) {
       return res.json(cached);
@@ -51,9 +55,15 @@ router.get('/', requireAuth, async (req, res) => {
       };
     });
     
+    // Filter by user if not admin
+    let filteredPayments = payments;
+    if (!isAdmin && userId) {
+      filteredPayments = payments.filter(p => p.userid === userId);
+    }
+    
     // Sort payments by time (latest first)
     // Time format: "DD/MM/YYYY HH:MM:SS"
-    payments.sort((a, b) => {
+    filteredPayments.sort((a, b) => {
       const parseTime = (timeStr) => {
         if (!timeStr || !timeStr.trim()) return 0;
         try {
@@ -89,8 +99,8 @@ router.get('/', requireAuth, async (req, res) => {
       return timeB - timeA;
     });
     
-    cache.setPaymentList(cacheKey, payments);
-    res.json(payments);
+    cache.setPaymentList(cacheKey, filteredPayments);
+    res.json(filteredPayments);
   } catch (error) {
     console.error('Error fetching payments:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -448,6 +458,60 @@ router.put('/:id', requireAuth, async (req, res) => {
     res.json({ message: 'Payment updated successfully' });
   } catch (error) {
     console.error('Error updating payment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update payment status (mark as paid/unpaid)
+router.patch('/:id/status', requireAuth, async (req, res) => {
+  try {
+    const rowIndex = parseInt(req.params.id) - 4;
+    const { processed } = req.body;
+    
+    if (typeof processed !== 'boolean') {
+      return res.status(400).json({ error: 'processed must be a boolean' });
+    }
+    
+    const rows = await sheets.getRows(config.sheetNames.payment);
+    
+    if (rowIndex < 0 || rowIndex >= rows.length) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    const row = rows[rowIndex];
+    const cols = config.paymentSheetColumns;
+    
+    // Get current payment data
+    const getValue = (colIndex) => {
+      const rawData = row._rawData || [];
+      return rawData[colIndex] || '';
+    };
+    
+    const currentPayment = {
+      uniqueID: getValue(cols.uniqueID),
+      processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
+    };
+    
+    // Update status
+    const updateData = {};
+    updateData[cols.processed] = processed;
+    
+    await sheets.updateRow(row, updateData, config.sheetNames.payment, rowIndex);
+    
+    // Log the change
+    if (processed !== currentPayment.processed) {
+      const updatedBy = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
+      await sheets.addPaymentLog(currentPayment.uniqueID, 'edit', updatedBy, {
+        processed: { old: currentPayment.processed, new: processed }
+      });
+    }
+    
+    // Invalidate cache
+    cache.invalidatePaymentList();
+    
+    res.json({ message: 'Payment status updated successfully', processed });
+  } catch (error) {
+    console.error('Error updating payment status:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

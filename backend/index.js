@@ -11,6 +11,7 @@ const authRoutes = require('./api/auth');
 const paymentsRoutes = require('./api/payments');
 const sellersRoutes = require('./api/sellers');
 const usersRoutes = require('./api/users');
+const analyticsRoutes = require('./api/analytics');
 
 const app = express();
 
@@ -69,6 +70,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/sellers', sellersRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // 404 handler for unmatched routes
 app.use((req, res) => {

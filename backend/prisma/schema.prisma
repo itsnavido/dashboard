@@ -1,0 +1,93 @@
+// Prisma schema for Payment Dashboard
+// Database: PostgreSQL (recommended) or MySQL/SQLite
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Change to "mysql" or "sqlite" if needed
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  discordId   String   @unique
+  username    String?
+  nickname    String?
+  password    String?  // Hashed password
+  role        String   @default("User") // Admin or User
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  payments    Payment[]
+  
+  @@index([discordId])
+  @@map("users")
+}
+
+model Seller {
+  id          String   @id @default(uuid())
+  discordId   String   @unique
+  card        String?
+  sheba       String?
+  name        String?
+  phone       String?
+  wallet      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([discordId])
+  @@map("sellers")
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  uniqueID          String   @unique // Legacy ID from Google Sheets
+  time              String   // Formatted date string
+  userid            String   // Discord ID
+  paymentDuration   String
+  paymentType       String   // Naghdi or Gold
+  realm             String
+  amount            Float?
+  price             Float?
+  gheymat           Float?
+  note              String?
+  card              String?
+  sheba             String?
+  name              String?
+  phone             String?
+  wallet            String?
+  admin             String   // Admin nickname
+  processed         Boolean  @default(false)
+  columnQ           Boolean  @default(false)
+  timeLeftToPay     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id])
+  
+  logs              PaymentLog[]
+  
+  @@index([userid])
+  @@index([uniqueID])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model PaymentLog {
+  id            String   @id @default(uuid())
+  paymentID     String   // Payment uniqueID
+  action        String   // create, edit, delete
+  user          String   // User who performed action
+  timestamp     String   // Formatted date string
+  changes       Json     // JSON object of changes
+  createdAt     DateTime @default(now())
+  
+  payment       Payment? @relation(fields: [paymentID], references: [uniqueID])
+  
+  @@index([paymentID])
+  @@map("payment_logs")
+}
+

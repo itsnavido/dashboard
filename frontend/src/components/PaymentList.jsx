@@ -214,7 +214,15 @@ const PaymentList = ({ onEdit, onDelete }) => {
               {loading ? (
                 <tr>
                   <td colSpan="12" style={{ textAlign: 'center', padding: '40px' }}>
-                    Loading payments...
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                      <div className="spinner spinner-small">
+                        <div className="spinner-ring"></div>
+                        <div className="spinner-ring"></div>
+                        <div className="spinner-ring"></div>
+                        <div className="spinner-ring"></div>
+                      </div>
+                      <span>Loading payments...</span>
+                    </div>
                   </td>
                 </tr>
               ) : paginatedPayments.length === 0 ? (
