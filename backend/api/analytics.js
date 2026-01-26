@@ -35,7 +35,19 @@ async function getAllPaymentsData() {
       uniqueID: getValue(cols.uniqueID),
       admin: getValue(cols.admin),
       processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
-      columnQ: getValue(cols.columnQ) === true || getValue(cols.columnQ) === 'TRUE' || getValue(cols.columnQ) === 'true',
+      columnQ: (() => {
+        const value = getValue(cols.columnQ);
+        if (value === true || value === 1) {
+          return true;
+        }
+        if (typeof value === 'string') {
+          const normalizedValue = value.trim().toUpperCase();
+          if (normalizedValue === 'TRUE' || normalizedValue === '1' || normalizedValue === 'YES' || normalizedValue === 'Y') {
+            return true;
+          }
+        }
+        return false;
+      })(),
       timeLeftToPay: getValue(cols.timeLeftToPay) || '',
       createdAt: getValue(cols.time) // Use time as createdAt for filtering
     };

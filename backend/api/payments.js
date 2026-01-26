@@ -52,8 +52,16 @@ router.get('/', requireAuth, async (req, res) => {
         processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
         columnQ: (() => {
           const value = getValue(cols.columnQ);
-          if (value === true || value === 'TRUE' || value === 'true' || value === 'True' || value === 1 || value === '1') {
+          // Handle various formats from Google Sheets
+          // Google Sheets may return: true, 'TRUE', 'true', 'True', 1, '1', 'TRUE ', ' true', etc.
+          if (value === true || value === 1) {
             return true;
+          }
+          if (typeof value === 'string') {
+            const normalizedValue = value.trim().toUpperCase();
+            if (normalizedValue === 'TRUE' || normalizedValue === '1' || normalizedValue === 'YES' || normalizedValue === 'Y') {
+              return true;
+            }
           }
           return false;
         })(),
@@ -149,7 +157,19 @@ router.get('/:id', requireAuth, async (req, res) => {
       uniqueID: getValue(cols.uniqueID),
       admin: getValue(cols.admin),
       processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
-      columnQ: getValue(cols.columnQ) === true || getValue(cols.columnQ) === 'TRUE' || getValue(cols.columnQ) === 'true' || getValue(cols.columnQ) === true,
+      columnQ: (() => {
+        const value = getValue(cols.columnQ);
+        if (value === true || value === 1) {
+          return true;
+        }
+        if (typeof value === 'string') {
+          const normalizedValue = value.trim().toUpperCase();
+          if (normalizedValue === 'TRUE' || normalizedValue === '1' || normalizedValue === 'YES' || normalizedValue === 'Y') {
+            return true;
+          }
+        }
+        return false;
+      })(),
       timeLeftToPay: getValue(cols.timeLeftToPay) || ''
     };
     

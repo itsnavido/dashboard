@@ -85,6 +85,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background: var(--bg-primary);
+    color: var(--text-primary);
     background-image: 
       radial-gradient(at 0% 0%, rgba(167, 139, 250, 0.1) 0px, transparent 50%),
       radial-gradient(at 100% 0%, rgba(244, 114, 182, 0.1) 0px, transparent 50%),
@@ -93,6 +94,36 @@
     min-height: 100vh;
     position: relative;
     overflow-x: hidden;
+  }
+  
+  /* Ensure all text elements use proper dark mode colors */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary) !important;
+  }
+  
+  p, span, div {
+    color: var(--text-primary);
+  }
+  
+  a {
+    color: var(--text-primary);
+  }
+  
+  input, select, textarea {
+    color: var(--text-primary) !important;
+  }
+  
+  button {
+    color: inherit;
+  }
+  
+  /* Override any Tailwind text colors */
+  .text-foreground {
+    color: var(--text-primary) !important;
+  }
+  
+  .text-muted-foreground {
+    color: var(--text-tertiary) !important;
   }
 
   /* Animated background particles */

@@ -33,6 +33,30 @@ const PaymentList = ({ onEdit, onDelete }) => {
     fetchPayments();
   }, []);
 
+  // Debug: Log payment data to see columnQ values
+  useEffect(() => {
+    if (payments.length > 0 && !loading) {
+      console.log('Sample payment columnQ values:', payments.slice(0, 3).map(p => ({
+        id: p.uniqueID,
+        columnQ: p.columnQ,
+        type: typeof p.columnQ,
+        raw: JSON.stringify(p.columnQ)
+      })));
+    }
+  }, [payments, loading]);
+
+  // Debug: Log payment data to see columnQ values
+  useEffect(() => {
+    if (payments.length > 0) {
+      console.log('Sample payment columnQ values:', payments.slice(0, 5).map(p => ({
+        id: p.uniqueID,
+        columnQ: p.columnQ,
+        type: typeof p.columnQ,
+        raw: JSON.stringify(p.columnQ)
+      })));
+    }
+  }, [payments]);
+
   const fetchPayments = async () => {
     try {
       setLoading(true);
@@ -241,11 +265,20 @@ const PaymentList = ({ onEdit, onDelete }) => {
                   const isNegative = timeLeftStr.toString().trim().startsWith('-') || 
                                    (timeLeftStr && !isNaN(parseFloat(timeLeftStr)) && parseFloat(timeLeftStr) < 0);
                   
-                  // Check if column Q is TRUE
-                  const isColumnQTrue = payment.columnQ === true || 
-                                       payment.columnQ === 'TRUE' || 
-                                       payment.columnQ === 'true' ||
-                                       payment.columnQ === 'True';
+                  // Check if column Q is TRUE - handle various formats
+                  const columnQValue = payment.columnQ;
+                  const isColumnQTrue = columnQValue === true || 
+                                       columnQValue === 'TRUE' || 
+                                       columnQValue === 'true' ||
+                                       columnQValue === 'True' ||
+                                       columnQValue === 1 ||
+                                       columnQValue === '1' ||
+                                       (typeof columnQValue === 'string' && columnQValue.trim().toUpperCase() === 'TRUE');
+                  
+                  // Debug: Log first few payments to see what columnQ value we're getting
+                  if (index < 3) {
+                    console.log(`Payment ${payment.uniqueID} columnQ:`, columnQValue, 'Type:', typeof columnQValue, 'IsPaid:', isColumnQTrue);
+                  }
                   
                   // Check if duration contains "lahzei"
                   const isLahzei = payment.paymentDuration && 
