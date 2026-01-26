@@ -1,9 +1,11 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu, Settings, Keyboard } from 'lucide-react';
+import { useSettings } from '@/contexts/SettingsContext';
 
-export function Header({ onMenuClick }) {
+export function Header({ onMenuClick, onShortcutsClick }) {
   const { user, logout } = useAuth();
+  const { setIsSettingsOpen } = useSettings();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -22,8 +24,26 @@ export function Header({ onMenuClick }) {
           </h1>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2">
+          {onShortcutsClick && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onShortcutsClick}
+              title="Keyboard Shortcuts (Ctrl+?)"
+            >
+              <Keyboard className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSettingsOpen(true)}
+            title="Settings (Ctrl+,)"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+          <div className="hidden sm:flex items-center gap-2 text-sm px-2">
             <span className="text-muted-foreground">Welcome,</span>
             <span className="font-semibold">{user?.username || user?.id}</span>
             <span className="text-muted-foreground">({user?.role})</span>

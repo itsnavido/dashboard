@@ -3,6 +3,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import api from '@/services/api';
 import { Link } from 'react-router-dom';
 import { CreditCard, DollarSign, TrendingUp, Users, Plus } from 'lucide-react';
@@ -58,59 +59,78 @@ function AdminDashboard() {
 
           {/* Overview Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {overviewLoading ? '...' : overview?.totalPayments || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">All time</p>
-              </CardContent>
-            </Card>
+            {overviewLoading ? (
+              <>
+                {[...Array(4)].map((_, i) => (
+                  <Card key={i}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-4 rounded" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-8 w-16 mb-2" />
+                      <Skeleton className="h-3 w-20" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            ) : (
+              <>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {overview?.totalPayments || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">All time</p>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Paid</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-500">
-                  {overviewLoading ? '...' : overview?.paidPayments || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {overviewLoading ? '' : `${Math.round((overview?.paidPayments / overview?.totalPayments) * 100) || 0}% of total`}
-                </p>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Paid</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-500">
+                      {overview?.paidPayments || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {`${Math.round((overview?.paidPayments / overview?.totalPayments) * 100) || 0}% of total`}
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Unpaid</CardTitle>
-                <CreditCard className="h-4 w-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-500">
-                  {overviewLoading ? '...' : overview?.unpaidPayments || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">Pending payment</p>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Unpaid</CardTitle>
+                    <CreditCard className="h-4 w-4 text-yellow-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-yellow-500">
+                      {overview?.unpaidPayments || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Pending payment</p>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {overviewLoading ? '...' : formatNumber(overview?.totalRevenue || 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">From paid payments</p>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {formatNumber(overview?.totalRevenue || 0)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">From paid payments</p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
           {/* Recent Payments */}
@@ -121,7 +141,11 @@ function AdminDashboard() {
             </CardHeader>
             <CardContent>
               {paymentsLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))}
+                </div>
               ) : payments?.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">No payments found</div>
               ) : (

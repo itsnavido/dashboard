@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { MainLayout } from '@/components/layout/MainLayout';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import PaymentForm from '../components/PaymentForm';
 import PaymentList from '../components/PaymentList';
 import PaymentEdit from '../components/PaymentEdit';
@@ -9,11 +13,12 @@ import { ToastContainer } from '../components/Toast';
 import { KeyboardShortcutsHelp } from '../components/KeyboardShortcutsHelp';
 import { useToast } from '../hooks/useToast';
 import { useKeyboardShortcuts, dashboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { authService } from '../services/auth';
+import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../contexts/SettingsContext';
+import { CreditCard, List, Store, Users, FileEdit } from 'lucide-react';
 
 const Dashboard = () => {
-  const [user, setUser] = useState(null);
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('form');
   const [editingPayment, setEditingPayment] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -27,7 +32,7 @@ const Dashboard = () => {
     'ctrl+k': {
       ...dashboardShortcuts['ctrl+k'],
       handler: () => {
-        const searchInput = document.querySelector('.search-input');
+        const searchInput = document.querySelector('.search-input, input[type="search"], input[placeholder*="Search"]');
         if (searchInput) {
           searchInput.focus();
           searchInput.select();
@@ -66,23 +71,6 @@ const Dashboard = () => {
     },
   });
 
-  useEffect(() => {
-    loadUser();
-  }, []);
-
-  const loadUser = async () => {
-    const currentUser = await authService.getCurrentUser();
-    if (!currentUser) {
-      window.location.href = '/login';
-    } else {
-      setUser(currentUser);
-    }
-  };
-
-  const handleLogout = async () => {
-    await authService.logout();
-  };
-
   const handleEdit = (payment) => {
     setEditingPayment(payment);
     setActiveTab('edit');
@@ -105,122 +93,113 @@ const Dashboard = () => {
     toast.success('Payment operation completed successfully!');
   };
 
-  if (!user) {
+  if (authLoading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'var(--bg-primary)'
-      }}>
-        <div className="spinner spinner-medium">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-      </div>
+      <ProtectedRoute>
+        <MainLayout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-lg">Loading...</div>
+          </div>
+        </MainLayout>
+      </ProtectedRoute>
     );
   }
 
-  const isAdmin = user.role === 'Admin';
+  const isAdmin = user?.role === 'Admin';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      <div className="dashboard-header">
-        <h1>Payment Dashboard</h1>
-        <div className="dashboard-user-info">
-          <button 
-            onClick={() => setShowShortcuts(true)}
-            className="btn-icon"
-            title="Keyboard Shortcuts (Ctrl+?)"
-            style={{ marginRight: '0.5rem' }}
-          >
-            ⌨️
-          </button>
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="btn-icon"
-            title="Settings (Ctrl+,)"
-            style={{ marginRight: '0.75rem' }}
-          >
-            ⚙️
-          </button>
-          <span>
-            Welcome, <strong>{user.username}</strong> <span style={{ color: 'var(--text-tertiary)' }}>({user.role})</span>
-          </span>
-          <button onClick={handleLogout} className="btn-small">
-            Logout
-          </button>
+    <ProtectedRoute>
+      <MainLayout onShortcutsClick={() => setShowShortcuts(true)}>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">Manage payments and sellers</p>
+          </div>
+
+          <SettingsPanel />
+          <KeyboardShortcutsHelp isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+          <ToastContainer toasts={toast.toasts} removeToast={toast.removeToast} />
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+              <TabsTrigger value="form" className="gap-2">
+                <CreditCard className="h-4 w-4" />
+                <span className="hidden sm:inline">New Payment</span>
+                <span className="sm:hidden">New</span>
+              </TabsTrigger>
+              <TabsTrigger value="list" className="gap-2">
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">Payment List</span>
+                <span className="sm:hidden">List</span>
+              </TabsTrigger>
+              <TabsTrigger value="sellers" className="gap-2">
+                <Store className="h-4 w-4" />
+                <span className="hidden sm:inline">Sellers</span>
+                <span className="sm:hidden">Sellers</span>
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="users" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  <span className="hidden sm:inline">Users</span>
+                  <span className="sm:hidden">Users</span>
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="form" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>New Payment</CardTitle>
+                  <CardDescription>Create a new payment entry</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PaymentForm onSuccess={handlePaymentSuccess} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="list" className="space-y-4">
+              <PaymentList 
+                key={refreshKey}
+                onEdit={handleEdit}
+                onDelete={handlePaymentSuccess}
+              />
+            </TabsContent>
+
+            {editingPayment && (
+              <TabsContent value="edit" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileEdit className="h-5 w-5" />
+                      Edit Payment
+                    </CardTitle>
+                    <CardDescription>Modify payment details</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PaymentEdit
+                      payment={editingPayment}
+                      onCancel={handleEditCancel}
+                      onSuccess={handleEditSuccess}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            <TabsContent value="sellers" className="space-y-4">
+              <SellerManagement />
+            </TabsContent>
+
+            {isAdmin && (
+              <TabsContent value="users" className="space-y-4">
+                <UserManagement />
+              </TabsContent>
+            )}
+          </Tabs>
         </div>
-      </div>
-      
-      <SettingsPanel />
-      <KeyboardShortcutsHelp isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      <ToastContainer toasts={toast.toasts} removeToast={toast.removeToast} />
-
-      <div className="tabs">
-        <button
-          className={`tab-button ${activeTab === 'form' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('form'); setEditingPayment(null); }}
-          data-tab="form"
-          title="New Payment (Ctrl+N)"
-        >
-          New Payment
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'list' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('list'); setEditingPayment(null); }}
-          data-tab="list"
-          title="Payment List (Ctrl+L)"
-        >
-          Payment List
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'sellers' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('sellers'); setEditingPayment(null); }}
-          data-tab="sellers"
-        >
-          Seller Management
-        </button>
-        {isAdmin && (
-          <button
-            className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('users'); setEditingPayment(null); }}
-            data-tab="users"
-          >
-            User Management
-          </button>
-        )}
-      </div>
-
-      <div className="content-area">
-        {activeTab === 'form' && (
-          <PaymentForm onSuccess={handlePaymentSuccess} />
-        )}
-        {activeTab === 'list' && (
-          <PaymentList 
-            key={refreshKey}
-            onEdit={handleEdit}
-            onDelete={handlePaymentSuccess}
-          />
-        )}
-        {activeTab === 'edit' && editingPayment && (
-          <PaymentEdit
-            payment={editingPayment}
-            onCancel={handleEditCancel}
-            onSuccess={handleEditSuccess}
-          />
-        )}
-        {activeTab === 'sellers' && (
-          <SellerManagement />
-        )}
-        {activeTab === 'users' && isAdmin && (
-          <UserManagement />
-        )}
-      </div>
-    </div>
+      </MainLayout>
+    </ProtectedRoute>
   );
 };
 

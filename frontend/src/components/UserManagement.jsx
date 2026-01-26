@@ -1,5 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from './EmptyState';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { 
+  UserPlus, 
+  Edit, 
+  Trash2, 
+  Loader2, 
+  XCircle,
+  Save,
+  X
+} from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 // User row component with inline editing
 const UserRow = ({ user, onUpdateRole, onUpdateCredentials, onDelete }) => {
@@ -9,12 +44,12 @@ const UserRow = ({ user, onUpdateRole, onUpdateCredentials, onDelete }) => {
 
   const handleSaveCredentials = () => {
     if (!username.trim()) {
-      alert('Username cannot be empty');
+      toast.error('Username cannot be empty');
       return;
     }
     onUpdateCredentials(user.discordId, username.trim(), password || undefined);
     setIsEditingCredentials(false);
-    setPassword(''); // Clear password field after saving
+    setPassword('');
   };
 
   const handleCancelEdit = () => {
@@ -24,81 +59,96 @@ const UserRow = ({ user, onUpdateRole, onUpdateCredentials, onDelete }) => {
   };
 
   return (
-    <tr>
-      <td>{user.discordId}</td>
-      <td>
-        <select
+    <TableRow>
+      <TableCell className="font-medium">{user.discordId}</TableCell>
+      <TableCell>
+        <Select
           value={user.role}
-          onChange={(e) => onUpdateRole(user.discordId, e.target.value)}
+          onValueChange={(value) => onUpdateRole(user.discordId, value)}
         >
-          <option value="User">User</option>
-          <option value="Admin">Admin</option>
-        </select>
-      </td>
-      <td>
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="User">User</SelectItem>
+            <SelectItem value="Admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
         {isEditingCredentials ? (
-          <input
+          <Input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            style={{ width: '100%', padding: '5px' }}
+            className="w-full"
             autoFocus
           />
         ) : (
           <span>{user.username || '-'}</span>
         )}
-      </td>
-      <td>
+      </TableCell>
+      <TableCell>
         {isEditingCredentials ? (
-          <input
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Leave empty to keep current"
-            style={{ width: '100%', padding: '5px' }}
+            className="w-full"
           />
         ) : (
-          <span>{user.username ? '••••••' : 'Not set'}</span>
+          <span className="text-muted-foreground">{user.username ? '••••••' : 'Not set'}</span>
         )}
-      </td>
-      <td>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}</td>
-      <td>{user.updatedAt ? new Date(user.updatedAt).toLocaleString() : '-'}</td>
-      <td>
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {user.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}
+      </TableCell>
+      <TableCell className="text-sm text-muted-foreground">
+        {user.updatedAt ? new Date(user.updatedAt).toLocaleString() : '-'}
+      </TableCell>
+      <TableCell>
         {isEditingCredentials ? (
-          <>
-            <button
-              className="btn-small btn-success"
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleSaveCredentials}
-              style={{ marginRight: '5px' }}
             >
+              <Save className="h-4 w-4 mr-1" />
               Save
-            </button>
-            <button
-              className="btn-small btn-secondary"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleCancelEdit}
             >
+              <X className="h-4 w-4 mr-1" />
               Cancel
-            </button>
-          </>
+            </Button>
+          </div>
         ) : (
-          <>
-            <button
-              className="btn-small"
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setIsEditingCredentials(true)}
-              style={{ marginRight: '5px' }}
             >
-              Edit Credentials
-            </button>
-            <button
-              className="btn-small btn-danger"
+              <Edit className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => onDelete(user.discordId)}
             >
+              <Trash2 className="h-4 w-4 mr-1" />
               Delete
-            </button>
-          </>
+            </Button>
+          </div>
         )}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 };
 
@@ -111,6 +161,8 @@ const UserManagement = () => {
     discordId: '',
     role: 'User'
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -125,6 +177,7 @@ const UserManagement = () => {
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Failed to load users');
+      toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -136,126 +189,193 @@ const UserManagement = () => {
       await api.post('/users', newUser);
       setNewUser({ discordId: '', role: 'User' });
       setShowAddForm(false);
+      toast.success('User added successfully');
       fetchUsers();
     } catch (err) {
       console.error('Error adding user:', err);
-      alert(err.response?.data?.error || 'Failed to add user');
+      const errorMsg = err.response?.data?.error || 'Failed to add user';
+      toast.error(errorMsg);
     }
   };
 
   const handleUpdateRole = async (discordId, newRole) => {
     try {
       await api.put(`/users/${discordId}`, { role: newRole });
+      toast.success('User role updated');
       fetchUsers();
     } catch (err) {
       console.error('Error updating user:', err);
-      alert(err.response?.data?.error || 'Failed to update user');
+      const errorMsg = err.response?.data?.error || 'Failed to update user';
+      toast.error(errorMsg);
     }
   };
 
-  const handleDeleteUser = async (discordId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
+  const handleDeleteClick = (discordId) => {
+    setUserToDelete(discordId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
 
     try {
-      await api.delete(`/users/${discordId}`);
+      await api.delete(`/users/${userToDelete}`);
+      toast.success('User deleted successfully');
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
       fetchUsers();
     } catch (err) {
       console.error('Error deleting user:', err);
-      alert(err.response?.data?.error || 'Failed to delete user');
+      const errorMsg = err.response?.data?.error || 'Failed to delete user';
+      toast.error(errorMsg);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="box">
-        <div className="loading">Loading users...</div>
-      </div>
-    );
-  }
+  const handleUpdateCredentials = async (discordId, username, password) => {
+    try {
+      await api.put(`/users/${discordId}`, { username, password });
+      toast.success('Credentials updated successfully');
+      fetchUsers();
+    } catch (err) {
+      console.error('Error updating credentials:', err);
+      const errorMsg = err.response?.data?.error || 'Failed to update credentials';
+      toast.error(errorMsg);
+    }
+  };
 
   return (
-    <div className="box">
-      <h2>User Management</h2>
-        {error && <div className="error">{error}</div>}
-        
-        <div style={{ marginBottom: '1.5rem' }}>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="btn-small"
-            style={{ marginBottom: showAddForm ? '1rem' : '0' }}
-          >
-            {showAddForm ? 'Cancel' : 'Add User'}
-          </button>
-
-          {showAddForm && (
-            <form onSubmit={handleAddUser} className="box" style={{ marginTop: '1rem', background: 'var(--gray-50)' }}>
-            <label>Discord ID:</label>
-            <input
-              type="text"
-              value={newUser.discordId}
-              onChange={(e) => setNewUser({ ...newUser, discordId: e.target.value })}
-              required
-            />
-            <label>Role:</label>
-            <select
-              value={newUser.role}
-              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-            >
-              <option value="User">User</option>
-              <option value="Admin">Admin</option>
-            </select>
-              <button type="submit" className="btn-success">Add User</button>
-            </form>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage users and their roles</CardDescription>
+            </div>
+            <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add User
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New User</DialogTitle>
+                  <DialogDescription>
+                    Create a new user account
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddUser} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newDiscordId">Discord ID</Label>
+                    <Input
+                      id="newDiscordId"
+                      type="text"
+                      value={newUser.discordId}
+                      onChange={(e) => setNewUser({ ...newUser, discordId: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newRole">Role</Label>
+                    <Select
+                      value={newUser.role}
+                      onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                    >
+                      <SelectTrigger id="newRole">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="User">User</SelectItem>
+                        <SelectItem value="Admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Add User</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-        </div>
 
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Discord ID</th>
-                <th>Role</th>
-                <th>Username</th>
-                <th>Password</th>
-                <th>Created At</th>
-                <th>Updated At</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: 'center' }}>
-                    No users found
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <UserRow
-                    key={user.discordId}
-                    user={user}
-                    onUpdateRole={handleUpdateRole}
-                    onUpdateCredentials={async (discordId, username, password) => {
-                      try {
-                        await api.put(`/users/${discordId}`, { username, password });
-                        fetchUsers();
-                      } catch (err) {
-                        console.error('Error updating credentials:', err);
-                        alert(err.response?.data?.error || 'Failed to update credentials');
-                      }
-                    }}
-                    onDelete={handleDeleteUser}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+          {loading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : users.length === 0 ? (
+            <EmptyState
+              title="No users found"
+              description="Get started by adding your first user"
+            />
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Discord ID</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Password</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead>Updated At</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <UserRow
+                      key={user.discordId}
+                      user={user}
+                      onUpdateRole={handleUpdateRole}
+                      onUpdateCredentials={handleUpdateCredentials}
+                      onDelete={handleDeleteClick}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete user {userToDelete}? 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default UserManagement;
-

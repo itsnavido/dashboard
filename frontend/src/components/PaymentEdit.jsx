@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { formatNumber } from '../utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, XCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -47,10 +54,32 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
   }, [payment]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
+    }));
+  };
+
+  const handleGheymatChange = (e) => {
+    let value = e.target.value.replace(/,/g, '');
+    
+    if (value && !/^\d*\.?\d*$/.test(value)) {
+      return;
+    }
+    
+    if (value && !isNaN(parseFloat(value))) {
+      const numValue = parseFloat(value);
+      value = formatNumber(numValue, true);
+    } else if (value === '') {
+      // Allow empty value
+    } else {
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      gheymat: value
     }));
   };
 
@@ -60,19 +89,20 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     setError('');
 
     try {
-      // Remove commas from gheymat before submission
-      // Note: processed field is excluded - it's only managed in Google Sheets
       const submitData = {
         ...formData,
         gheymat: formData.gheymat ? formData.gheymat.toString().replace(/,/g, '') : ''
       };
       await api.put(`/payments/${payment.id}`, submitData);
+      toast.success('Payment updated successfully!');
       if (onSuccess) {
         onSuccess();
       }
     } catch (err) {
       console.error('Error updating payment:', err);
-      setError(err.response?.data?.error || 'Failed to update payment');
+      const errorMsg = err.response?.data?.error || 'Failed to update payment';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -83,162 +113,198 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
   }
 
   return (
-    <div className="box">
-      <h2>Edit Payment</h2>
-      {error && <div className="error">{error}</div>}
-      <form onSubmit={handleSubmit}>
-          <label>Time:</label>
-          <input
-            type="text"
-            name="time"
-            value={formData.time}
-            onChange={handleChange}
-          />
+    <Card>
+      <CardHeader>
+        <CardTitle>Edit Payment</CardTitle>
+        <CardDescription>Modify payment details</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-          <label>Discord ID:</label>
-          <input
-            type="text"
-            name="userid"
-            value={formData.userid}
-            onChange={handleChange}
-          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="time">Time</Label>
+              <Input
+                type="text"
+                id="time"
+                name="time"
+                value={formData.time}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Payment Duration:</label>
-          <input
-            type="text"
-            name="paymentDuration"
-            value={formData.paymentDuration}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="userid">Discord ID</Label>
+              <Input
+                type="text"
+                id="userid"
+                name="userid"
+                value={formData.userid}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Realm:</label>
-          <input
-            type="text"
-            name="realm"
-            value={formData.realm}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="paymentDuration">Payment Duration</Label>
+              <Input
+                type="text"
+                id="paymentDuration"
+                name="paymentDuration"
+                value={formData.paymentDuration}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Amount:</label>
-          <input
-            type="text"
-            name="amount"
-            value={formData.amount}
-            onChange={handleChange}
-            inputMode="decimal"
-            step="any"
-          />
+            <div className="space-y-2">
+              <Label htmlFor="realm">Realm</Label>
+              <Input
+                type="text"
+                id="realm"
+                name="realm"
+                value={formData.realm}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Price:</label>
-          <input
-            type="text"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            inputMode="decimal"
-            step="any"
-          />
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                type="text"
+                id="amount"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                inputMode="decimal"
+              />
+            </div>
 
-          <label>Gheymat:</label>
-          <input
-            type="text"
-            name="gheymat"
-            value={formData.gheymat}
-            onChange={(e) => {
-              let value = e.target.value.replace(/,/g, '');
-              
-              // Allow decimal input - validate format
-              if (value && !/^\d*\.?\d*$/.test(value)) {
-                return; // Invalid input, don't update
-              }
-              
-              // Format with decimals preserved
-              if (value && !isNaN(parseFloat(value))) {
-                const numValue = parseFloat(value);
-                value = formatNumber(numValue, true); // Allow decimals
-              } else if (value === '') {
-                // Allow empty value
-              } else {
-                return; // Invalid, don't update
-              }
-              
-              setFormData(prev => ({
-                ...prev,
-                gheymat: value
-              }));
-            }}
-            inputMode="decimal"
-            step="any"
-          />
+            <div className="space-y-2">
+              <Label htmlFor="price">Price</Label>
+              <Input
+                type="text"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                inputMode="decimal"
+              />
+            </div>
 
-          <label>Note:</label>
-          <input
-            type="text"
-            name="note"
-            value={formData.note}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="gheymat">Gheymat</Label>
+              <Input
+                type="text"
+                id="gheymat"
+                name="gheymat"
+                value={formData.gheymat}
+                onChange={handleGheymatChange}
+                inputMode="decimal"
+              />
+            </div>
 
-          <label>Card:</label>
-          <input
-            type="text"
-            name="card"
-            value={formData.card}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="note">Note</Label>
+              <Input
+                type="text"
+                id="note"
+                name="note"
+                value={formData.note}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Sheba:</label>
-          <input
-            type="text"
-            name="sheba"
-            value={formData.sheba}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="card">Card</Label>
+              <Input
+                type="text"
+                id="card"
+                name="card"
+                value={formData.card}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Name:</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="sheba">Sheba</Label>
+              <Input
+                type="text"
+                id="sheba"
+                name="sheba"
+                value={formData.sheba}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Phone:</label>
-          <input
-            type="text"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Wallet:</label>
-          <input
-            type="text"
-            name="wallet"
-            value={formData.wallet}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                type="text"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>Admin:</label>
-          <input
-            type="text"
-            name="admin"
-            value={formData.admin}
-            onChange={handleChange}
-          />
+            <div className="space-y-2">
+              <Label htmlFor="wallet">Wallet</Label>
+              <Input
+                type="text"
+                id="wallet"
+                name="wallet"
+                value={formData.wallet}
+                onChange={handleChange}
+              />
+            </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-          <button type="submit" disabled={loading}>
-            {loading ? 'Saving...' : 'Save'}
-          </button>
-          <button type="button" onClick={onCancel} className="btn-secondary">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin">Admin</Label>
+              <Input
+                type="text"
+                id="admin"
+                name="admin"
+                value={formData.admin}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 
 export default PaymentEdit;
-

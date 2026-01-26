@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { formatNumber } from '../utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Copy, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const PaymentForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -25,9 +34,11 @@ const PaymentForm = ({ onSuccess }) => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('success'); // 'success' or 'error'
   const [showEdit, setShowEdit] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [userFound, setUserFound] = useState(false);
+  const [loadingSeller, setLoadingSeller] = useState(false);
 
   const paymentDurationOptions = [
     { value: 'lahzei', label: 'lahzei' },
@@ -48,7 +59,6 @@ const PaymentForm = ({ onSuccess }) => {
   ];
 
   const isUSDT = formData.paymentDuration === 'usdt days';
-  const currencySymbol = isUSDT ? '$' : '';
 
   // Calculate total amount for Gold payments
   useEffect(() => {
@@ -59,7 +69,7 @@ const PaymentForm = ({ onSuccess }) => {
       if (amount > 0 && unitPrice > 0) {
         let total = amount * unitPrice;
         if (!isUSDT) {
-          total = total * 10; // Multiply by 10 for non-USDT
+          total = total * 10;
         }
         
         setFormData(prev => ({
@@ -84,11 +94,13 @@ const PaymentForm = ({ onSuccess }) => {
     const discordId = formData.discordId.replace(/\s/g, '');
     if (!discordId) return;
 
+    setLoadingSeller(true);
     try {
       const response = await api.get(`/sellers/${discordId}`);
       
       if (response.data.error === 'Not Found') {
         setMessage('کاربر یافت نشد! لطفاً مشخصات کاربر جدید را ثبت نمایید');
+        setMessageType('error');
         setUserFound(false);
         setShowEdit(false);
         setShowAdd(true);
@@ -115,15 +127,16 @@ const PaymentForm = ({ onSuccess }) => {
     } catch (error) {
       console.error('Error fetching seller data:', error);
       setMessage('خطا در دریافت اطلاعات کاربر');
+      setMessageType('error');
+    } finally {
+      setLoadingSeller(false);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Allow decimal input for amount and unitPrice
     if (name === 'amount' || name === 'unitPrice') {
-      // Remove commas and allow decimal input
       const cleanValue = value.replace(/,/g, '');
       setFormData(prev => ({
         ...prev,
@@ -138,7 +151,6 @@ const PaymentForm = ({ onSuccess }) => {
   };
 
   const handleAmountBlur = (e) => {
-    // Format on blur for Naghdi amount
     if (formData.paymentType === 'Naghdi') {
       const value = e.target.value.replace(/,/g, '');
       if (value && !isNaN(parseFloat(value))) {
@@ -152,7 +164,6 @@ const PaymentForm = ({ onSuccess }) => {
   };
 
   const handleUnitPriceBlur = (e) => {
-    // Format on blur
     const value = e.target.value.replace(/,/g, '');
     if (value && !isNaN(parseFloat(value))) {
       const numValue = parseFloat(value);
@@ -177,9 +188,9 @@ const PaymentForm = ({ onSuccess }) => {
 
     setIsSubmitting(true);
     setMessage('');
+    setMessageType('success');
 
     try {
-      // Save seller info if edit or add is checked
       if (showEdit || showAdd) {
         const discordId = formData.discordId.replace(/\s/g, '');
         await api.post('/sellers', {
@@ -192,10 +203,8 @@ const PaymentForm = ({ onSuccess }) => {
         });
       }
 
-      // Submit payment
       const finalRealm = formData.realm === 'Custom' ? (formData.customRealm || '') : formData.realm;
       
-      // Prepare payment data based on payment type
       let paymentData = {
         discordId: formData.discordId.replace(/\s/g, ''),
         paymentType: formData.paymentType,
@@ -221,7 +230,6 @@ const PaymentForm = ({ onSuccess }) => {
 
       const response = await api.post('/payments', paymentData);
       
-      // Create detailed success message
       const paymentDurationLabel = paymentDurationOptions.find(opt => opt.value === formData.paymentDuration)?.label || formData.paymentDuration;
       const realmLabel = formData.realm === 'Custom' ? formData.customRealm : (realmOptions.find(opt => opt.value === formData.realm)?.label || formData.realm);
       const paymentTypeLabel = formData.paymentType === 'Gold' ? 'فروش گلد' : 'پرداخت نقدی';
@@ -245,6 +253,8 @@ const PaymentForm = ({ onSuccess }) => {
         (sellerInfo.shomareSheba ? `شماره شبا: ${sellerInfo.shomareSheba}\n` : '');
       
       setMessage(detailedMessage);
+      setMessageType('success');
+      
       setFormData({
         discordId: '',
         paymentType: '',
@@ -267,12 +277,16 @@ const PaymentForm = ({ onSuccess }) => {
       setShowAdd(false);
       setUserFound(false);
 
+      toast.success('Payment created successfully!');
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      setMessage(error.response?.data?.error || 'خطا در ثبت پرداخت. لطفاً دوباره تلاش کنید.');
+      const errorMsg = error.response?.data?.error || 'خطا در ثبت پرداخت. لطفاً دوباره تلاش کنید.';
+      setMessage(errorMsg);
+      setMessageType('error');
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -284,360 +298,353 @@ const PaymentForm = ({ onSuccess }) => {
   const handleCopyMessage = () => {
     if (message) {
       navigator.clipboard.writeText(message).then(() => {
-        // Show temporary feedback
-        const originalMessage = message;
-        setMessage(originalMessage + '\n\n✓ Copied to clipboard!');
-        setTimeout(() => {
-          setMessage(originalMessage);
-        }, 2000);
+        toast.success('Copied to clipboard!');
       }).catch(err => {
         console.error('Failed to copy:', err);
+        toast.error('Failed to copy');
       });
     }
   };
 
   return (
-    <div className="container payment-form-container">
-      <div className="box payment-form-box">
-        <h2>ثبت پرداخت جدید</h2>
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="discordId">Discord ID:</label>
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-            <input
-              type="text"
-              id="discordId"
-              name="discordId"
-              value={formData.discordId}
-              onChange={handleInputChange}
-              onBlur={fetchSellerData}
-              required
-              autoComplete="off"
-              style={{ flex: 1 }}
-            />
-            {userFound && (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEdit(!showEdit);
-                  setShowAdd(false);
-                }}
-                className="btn-small btn-secondary"
-              >
-                {showEdit ? 'لغو ویرایش' : 'ویرایش اطلاعات'}
-              </button>
-            )}
-            {!userFound && formData.discordId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAdd(!showAdd);
-                  setShowEdit(false);
-                }}
-                className="btn-small btn-success"
-              >
-                {showAdd ? 'لغو' : 'افزودن کاربر'}
-              </button>
-            )}
-          </div>
-
-          <label htmlFor="paymentType">نوع پرداخت:</label>
-          <select
-            id="paymentType"
-            name="paymentType"
-            value={formData.paymentType}
-            onChange={handleInputChange}
-            required
-          >
-            <option value="">انتخاب نوع پرداخت</option>
-            <option value="Gold">فروش گلد</option>
-            <option value="Naghdi">پرداخت نقدی</option>
-          </select>
-
-          {showRealm && (
-            <>
-              <label htmlFor="realm">Game:</label>
-              {formData.realm === 'Custom' ? (
-                <input
-                  type="text"
-                  id="customRealm"
-                  name="customRealm"
-                  placeholder="Enter custom game name"
-                  value={formData.customRealm || ''}
-                  onChange={(e) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      customRealm: e.target.value
-                    }));
-                  }}
-                  onBlur={(e) => {
-                    if (!e.target.value.trim()) {
-                      setFormData(prev => ({
-                        ...prev,
-                        realm: '',
-                        customRealm: ''
-                      }));
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setFormData(prev => ({
-                        ...prev,
-                        realm: '',
-                        customRealm: ''
-                      }));
-                      setTimeout(() => {
-                        const select = document.getElementById('realm');
-                        if (select) select.focus();
-                      }, 0);
-                    }
-                  }}
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>ثبت پرداخت جدید</CardTitle>
+          <CardDescription>Create a new payment entry</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="discordId">Discord ID</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="discordId"
+                  name="discordId"
+                  value={formData.discordId}
+                  onChange={handleInputChange}
+                  onBlur={fetchSellerData}
                   required
                   autoComplete="off"
-                  autoFocus
+                  className="flex-1"
+                  disabled={loadingSeller}
                 />
-              ) : (
-                <select
-                  id="realm"
-                  name="realm"
-                  value={formData.realm}
-                  onChange={handleInputChange}
-                  required
-                >
-                  {realmOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              )}
-            </>
-          )}
+                {userFound && (
+                  <Button
+                    type="button"
+                    variant={showEdit ? "destructive" : "secondary"}
+                    onClick={() => {
+                      setShowEdit(!showEdit);
+                      setShowAdd(false);
+                    }}
+                  >
+                    {showEdit ? 'لغو' : 'ویرایش'}
+                  </Button>
+                )}
+                {!userFound && formData.discordId && (
+                  <Button
+                    type="button"
+                    variant={showAdd ? "destructive" : "default"}
+                    onClick={() => {
+                      setShowAdd(!showAdd);
+                      setShowEdit(false);
+                    }}
+                  >
+                    {showAdd ? 'لغو' : 'افزودن'}
+                  </Button>
+                )}
+              </div>
+            </div>
 
-          {showPaymentFields && (
-            <>
-              <label htmlFor="paymentDuration">Payment Duration:</label>
-              <select
-                id="paymentDuration"
-                name="paymentDuration"
-                value={formData.paymentDuration}
-                onChange={handleInputChange}
+            <div className="space-y-2">
+              <Label htmlFor="paymentType">نوع پرداخت</Label>
+              <Select
+                value={formData.paymentType}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, paymentType: value }))}
                 required
               >
-                {paymentDurationOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-
-              {/* Gold Payment Fields */}
-              {formData.paymentType === 'Gold' && (
-                <>
-                  <label htmlFor="amount">Amount:</label>
-                  <input
-                    type="text"
-                    id="amount"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                    inputMode="decimal"
-                    step="any"
-                    required
-                  />
-
-                  <label htmlFor="unitPrice">
-                    Unit Price ({isUSDT ? '$' : 'Toman'}):
-                  </label>
-                  <input
-                    type="text"
-                    id="unitPrice"
-                    name="unitPrice"
-                    value={formData.unitPrice}
-                    onChange={handleInputChange}
-                    onBlur={handleUnitPriceBlur}
-                    autoComplete="off"
-                    inputMode="decimal"
-                    step="any"
-                    required
-                  />
-
-                  <label htmlFor="totalAmount">
-                    Total Amount ({isUSDT ? '$' : 'Toman'}):
-                  </label>
-                  <input
-                    type="text"
-                    id="totalAmount"
-                    name="totalAmount"
-                    value={formData.totalAmount}
-                    readOnly
-                    style={{ 
-                      backgroundColor: 'var(--bg-tertiary)', 
-                      cursor: 'not-allowed',
-                      opacity: 0.8
-                    }}
-                  />
-                  {!isUSDT && formData.totalAmount && (
-                    <div style={{ 
-                      fontSize: '0.875rem', 
-                      color: 'var(--text-tertiary)', 
-                      marginTop: '-1rem',
-                      marginBottom: '1.5rem',
-                      paddingLeft: '0.5rem'
-                    }}>
-                      = {formatNumber(parseFloat(formData.totalAmount.replace(/,/g, '')) / 10, true)} Toman
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Naghdi Payment Fields */}
-              {formData.paymentType === 'Naghdi' && (
-                <>
-                  <label htmlFor="amount">
-                    Amount ({isUSDT ? '$' : 'Rial'}):
-                  </label>
-                  <input
-                    type="text"
-                    id="amount"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleInputChange}
-                    onBlur={handleAmountBlur}
-                    autoComplete="off"
-                    inputMode="decimal"
-                    step="any"
-                    required
-                  />
-                  {!isUSDT && formData.amount && (
-                    <div style={{ 
-                      fontSize: '0.875rem', 
-                      color: 'var(--text-tertiary)', 
-                      marginTop: '-1rem',
-                      marginBottom: '1.5rem',
-                      paddingLeft: '0.5rem'
-                    }}>
-                      = {formatNumber(parseFloat(formData.amount.replace(/,/g, '')) / 10, true)} Toman
-                    </div>
-                  )}
-                </>
-              )}
-
-              <label htmlFor="note">یادداشت:</label>
-              <input
-                type="text"
-                id="note"
-                name="note"
-                value={formData.note}
-                onChange={handleInputChange}
-              />
-            </>
-          )}
-
-          {message && (
-            <div 
-              className={message.includes('Error') || message.includes('خطا') ? 'error' : 'success'}
-              style={{ whiteSpace: 'pre-line', position: 'relative', paddingRight: message.includes('Error') || message.includes('خطا') ? '1.5rem' : '5rem' }}
-            >
-              {message}
-              {!message.includes('Error') && !message.includes('خطا') && (
-                <button
-                  type="button"
-                  onClick={handleCopyMessage}
-                  className="copy-button"
-                  title="Copy to clipboard"
-                  style={{
-                    position: 'absolute',
-                    top: '0.75rem',
-                    right: '0.75rem',
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: '4px',
-                    padding: '0.5rem 0.75rem',
-                    cursor: 'pointer',
-                    color: 'inherit',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    transition: 'all 0.2s ease',
-                    backdropFilter: 'blur(10px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.3)';
-                    e.target.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = 'rgba(255, 255, 255, 0.2)';
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                >
-                  📋 Copy
-                </button>
-              )}
+                <SelectTrigger id="paymentType">
+                  <SelectValue placeholder="انتخاب نوع پرداخت" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Gold">فروش گلد</SelectItem>
+                  <SelectItem value="Naghdi">پرداخت نقدی</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
 
-          <button type="submit" disabled={isSubmitting || !showPaymentFields}>
-            {isSubmitting ? 'Submitting...' : 'ثبت'}
-          </button>
-        </form>
-      </div>
+            {showRealm && (
+              <div className="space-y-2">
+                <Label htmlFor="realm">Game</Label>
+                {formData.realm === 'Custom' ? (
+                  <Input
+                    id="customRealm"
+                    name="customRealm"
+                    placeholder="Enter custom game name"
+                    value={formData.customRealm || ''}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        customRealm: e.target.value
+                      }));
+                    }}
+                    onBlur={(e) => {
+                      if (!e.target.value.trim()) {
+                        setFormData(prev => ({
+                          ...prev,
+                          realm: '',
+                          customRealm: ''
+                        }));
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setFormData(prev => ({
+                          ...prev,
+                          realm: '',
+                          customRealm: ''
+                        }));
+                      }
+                    }}
+                    required
+                    autoComplete="off"
+                    autoFocus
+                  />
+                ) : (
+                  <Select
+                    value={formData.realm}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, realm: value }))}
+                    required
+                  >
+                    <SelectTrigger id="realm">
+                      <SelectValue placeholder="Select a Realm" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {realmOptions.filter(opt => opt.value !== '').map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
 
-      <div className="box" id="paymentbox" style={{ direction: 'rtl', textAlign: 'right' }}>
-        <h3 style={{ marginBottom: '1.5rem', textAlign: 'right' }}>Bank Details</h3>
-        <label htmlFor="shomareSheba">شماره شبا:</label>
-        <input
-          type="text"
-          id="shomareSheba"
-          name="shomareSheba"
-          value={sellerInfo.shomareSheba}
-          onChange={handleSellerInfoChange}
-          autoComplete="off"
-          disabled={!showEdit && !showAdd}
-        />
+            {showPaymentFields && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentDuration">Payment Duration</Label>
+                  <Select
+                    value={formData.paymentDuration}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentDuration: value }))}
+                    required
+                  >
+                    <SelectTrigger id="paymentDuration">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentDurationOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <label htmlFor="shomareKart">شماره کارت:</label>
-        <input
-          type="text"
-          id="shomareKart"
-          name="shomareKart"
-          value={sellerInfo.shomareKart}
-          onChange={handleSellerInfoChange}
-          autoComplete="off"
-          disabled={!showEdit && !showAdd}
-        />
+                {formData.paymentType === 'Gold' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="amount">Amount</Label>
+                      <Input
+                        id="amount"
+                        name="amount"
+                        value={formData.amount}
+                        onChange={handleInputChange}
+                        autoComplete="off"
+                        inputMode="decimal"
+                        required
+                      />
+                    </div>
 
-        <label htmlFor="name">نام:</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={sellerInfo.name}
-          onChange={handleSellerInfoChange}
-          autoComplete="off"
-          disabled={!showEdit && !showAdd}
-        />
+                    <div className="space-y-2">
+                      <Label htmlFor="unitPrice">
+                        Unit Price ({isUSDT ? '$' : 'Toman'})
+                      </Label>
+                      <Input
+                        id="unitPrice"
+                        name="unitPrice"
+                        value={formData.unitPrice}
+                        onChange={handleInputChange}
+                        onBlur={handleUnitPriceBlur}
+                        autoComplete="off"
+                        inputMode="decimal"
+                        required
+                      />
+                    </div>
 
-        <label htmlFor="shomareTamas">شماره تماس:</label>
-        <input
-          type="text"
-          id="shomareTamas"
-          name="shomareTamas"
-          value={sellerInfo.shomareTamas}
-          onChange={handleSellerInfoChange}
-          autoComplete="off"
-          disabled={!showEdit && !showAdd}
-        />
+                    <div className="space-y-2">
+                      <Label htmlFor="totalAmount">
+                        Total Amount ({isUSDT ? '$' : 'Toman'})
+                      </Label>
+                      <Input
+                        id="totalAmount"
+                        name="totalAmount"
+                        value={formData.totalAmount}
+                        readOnly
+                        className="bg-muted cursor-not-allowed"
+                      />
+                      {!isUSDT && formData.totalAmount && (
+                        <p className="text-sm text-muted-foreground">
+                          = {formatNumber(parseFloat(formData.totalAmount.replace(/,/g, '')) / 10, true)} Toman
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
 
-        <label htmlFor="rank">Wallet/Rank:</label>
-        <input
-          type="text"
-          id="rank"
-          name="rank"
-          value={sellerInfo.rank}
-          onChange={handleSellerInfoChange}
-          autoComplete="off"
-          disabled={!showEdit && !showAdd}
-        />
-      </div>
+                {formData.paymentType === 'Naghdi' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">
+                      Amount ({isUSDT ? '$' : 'Rial'})
+                    </Label>
+                    <Input
+                      id="amount"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleInputChange}
+                      onBlur={handleAmountBlur}
+                      autoComplete="off"
+                      inputMode="decimal"
+                      required
+                    />
+                    {!isUSDT && formData.amount && (
+                      <p className="text-sm text-muted-foreground">
+                        = {formatNumber(parseFloat(formData.amount.replace(/,/g, '')) / 10, true)} Toman
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="note">یادداشت</Label>
+                  <Input
+                    id="note"
+                    name="note"
+                    value={formData.note}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </>
+            )}
+
+            {message && (
+              <Alert variant={messageType === 'error' ? 'destructive' : 'success'} className="relative">
+                {messageType === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <XCircle className="h-4 w-4" />
+                )}
+                <AlertTitle>{messageType === 'error' ? 'Error' : 'Success'}</AlertTitle>
+                <AlertDescription className="whitespace-pre-line">
+                  {message}
+                </AlertDescription>
+                {messageType === 'success' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 right-4 h-6 w-6"
+                    onClick={handleCopyMessage}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                )}
+              </Alert>
+            )}
+
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || !showPaymentFields}
+              className="w-full"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'ثبت'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="md:order-first">
+        <CardHeader>
+          <CardTitle>Bank Details</CardTitle>
+          <CardDescription>Seller information</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4" dir="rtl">
+          <div className="space-y-2">
+            <Label htmlFor="shomareSheba">شماره شبا</Label>
+            <Input
+              id="shomareSheba"
+              name="shomareSheba"
+              value={sellerInfo.shomareSheba}
+              onChange={handleSellerInfoChange}
+              autoComplete="off"
+              disabled={!showEdit && !showAdd}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="shomareKart">شماره کارت</Label>
+            <Input
+              id="shomareKart"
+              name="shomareKart"
+              value={sellerInfo.shomareKart}
+              onChange={handleSellerInfoChange}
+              autoComplete="off"
+              disabled={!showEdit && !showAdd}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="name">نام</Label>
+            <Input
+              id="name"
+              name="name"
+              value={sellerInfo.name}
+              onChange={handleSellerInfoChange}
+              autoComplete="off"
+              disabled={!showEdit && !showAdd}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="shomareTamas">شماره تماس</Label>
+            <Input
+              id="shomareTamas"
+              name="shomareTamas"
+              value={sellerInfo.shomareTamas}
+              onChange={handleSellerInfoChange}
+              autoComplete="off"
+              disabled={!showEdit && !showAdd}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="rank">Wallet/Rank</Label>
+            <Input
+              id="rank"
+              name="rank"
+              value={sellerInfo.rank}
+              onChange={handleSellerInfoChange}
+              autoComplete="off"
+              disabled={!showEdit && !showAdd}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
