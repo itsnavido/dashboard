@@ -19,7 +19,7 @@ import {
 import api from '@/services/api';
 import { formatNumber, isPaymentPaid } from '@/utils';
 import { toast } from 'react-hot-toast';
-import { Search, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle2, XCircle, Edit, Trash2 } from 'lucide-react';
 import PaymentForm from '@/components/PaymentForm';
 import PaymentEdit from '@/components/PaymentEdit';
 
@@ -263,20 +263,22 @@ function AdminPayments() {
                           </TableCell>
                           <TableCell>{payment.admin}</TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
+                            <div className="flex flex-col items-end gap-1">
                               <Button
                                 variant="outline"
-                                size="sm"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => setEditingPayment(payment)}
                               >
-                                Edit
+                                <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="destructive"
-                                size="sm"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => handleDelete(payment.id)}
                               >
-                                Delete
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
