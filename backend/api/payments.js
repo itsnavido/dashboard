@@ -260,11 +260,16 @@ router.post('/', requireAuth, async (req, res) => {
     // Send Discord webhook
     try {
       const currency = paymentDuration === 'usdt days' ? '$' : 'Rial';
+      // For USDT, gheymat is already amount * price (not multiplied by 10)
+      // For other payment types, gheymat is amount * price * 10, so divide by 10 for display
+      const webhookGheymat = paymentDuration === 'usdt days' 
+        ? (finalGheymat || 0)
+        : (finalGheymat ? finalGheymat / 10 : 0);
       await discord.sendDiscordMessage({
         discordId,
         amount: parseFloat(amount) || 0,
         price: parseFloat(price) || 0,
-        gheymat: finalGheymat ? finalGheymat / 10 : 0,
+        gheymat: webhookGheymat,
         paymentDuration: paymentDurationMessage,
         realm,
         admin: adminName,

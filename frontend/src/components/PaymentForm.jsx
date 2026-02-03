@@ -191,20 +191,27 @@ const PaymentForm = ({ onSuccess }) => {
     setMessageType('success');
 
     try {
+      // Update seller info if needed (non-blocking - payment will still be submitted with updated info even if this fails)
       if (showEdit || showAdd) {
         const discordId = formData.discordId.replace(/\s/g, '');
-        await api.post('/sellers', {
-          discordId,
-          card: sellerInfo.shomareKart,
-          sheba: sellerInfo.shomareSheba,
-          name: sellerInfo.name,
-          phone: sellerInfo.shomareTamas,
-          wallet: sellerInfo.rank || ''
-        });
+        try {
+          await api.post('/sellers', {
+            discordId,
+            card: sellerInfo.shomareKart,
+            sheba: sellerInfo.shomareSheba,
+            name: sellerInfo.name,
+            phone: sellerInfo.shomareTamas,
+            wallet: sellerInfo.rank || ''
+          });
+        } catch (sellerError) {
+          console.warn('Failed to update seller info, but continuing with payment submission:', sellerError);
+          // Continue with payment submission even if seller update fails
+        }
       }
 
       const finalRealm = formData.realm === 'Custom' ? (formData.customRealm || '') : formData.realm;
       
+      // Always use seller info from form state for payment submission
       let paymentData = {
         discordId: formData.discordId.replace(/\s/g, ''),
         paymentType: formData.paymentType,
