@@ -231,14 +231,21 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.paymentDuration] = paymentDuration || '';
     paymentData[cols.amount] = amount || '';
     paymentData[cols.price] = price || '';
-    paymentData[cols.note] = note || '';
+    
+    // For USDT payments, put wallet in Note column (column M/12)
+    if (paymentDuration === 'usdt days' && wallet) {
+      // Combine wallet with note if note exists, otherwise just use wallet
+      paymentData[cols.note] = note ? `${note} | Wallet: ${wallet}` : `Wallet: ${wallet}`;
+    } else {
+      paymentData[cols.note] = note || '';
+    }
+    
     paymentData[cols.gheymat] = finalGheymat || '';
     paymentData[cols.realm] = realm;
     paymentData[cols.card] = card || '';
     paymentData[cols.sheba] = sheba || '';
     paymentData[cols.name] = name || '';
     paymentData[cols.phone] = phone || '';
-    paymentData[cols.wallet] = wallet || '';
     paymentData[cols.uniqueID] = uniqueID;
     paymentData[cols.admin] = adminName;
     // Don't set processed field - leave it empty (managed via sheet itself)
