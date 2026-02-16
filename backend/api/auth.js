@@ -181,85 +181,84 @@ router.post('/logout', (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
-    // Username/Password login
-    router.post('/login', async (req, res) => {
-      try {
-        const { username, password } = req.body;
-        
-        if (!username || !password) {
-          return res.status(400).json({ error: 'Username and password are required' });
-        }
-        
-        console.log('[Auth] Attempting username/password login for username:', username);
-        
-        // Get user by username
-        const user = await userService.getUserByUsername(username);
-        
-        if (!user) {
-          console.log('[Auth] User not found for username:', username);
-          return res.status(401).json({ error: 'Invalid username or password' });
-        }
-        
-        console.log('[Auth] User found:', user.discordId, 'Has password:', !!user.password, 'Password length:', user.password ? user.password.length : 0);
-        console.log('[Auth] User details:', {
-          discordId: user.discordId,
-          username: user.username,
-          role: user.role,
-          hasPassword: !!user.password,
-          passwordPrefix: user.password ? user.password.substring(0, 10) + '...' : 'none'
-        });
-        
-        // Check if user has a password set
-        if (!user.password || user.password === '') {
-          console.log('[Auth] User has no password set');
-          return res.status(401).json({ error: 'Password login not available for this user. Please use Discord login or set a password first.' });
-        }
-        
-        // Verify password
-        console.log('[Auth] Verifying password...');
-        const isValidPassword = await userService.verifyPassword(password, user.password);
-        
-        console.log('[Auth] Password verification result:', isValidPassword);
-        
-        if (!isValidPassword) {
-          return res.status(401).json({ error: 'Invalid username or password' });
-        }
-        
-        // Generate JWT token
-        const token = generateToken({
-          id: user.discordId,
-          username: user.username || user.discordId,
-          role: user.role
-        });
-        
-        console.log('[Auth] Successful username/password login for user:', user.discordId);
-        
-        // Set JWT as HTTP-only cookie
-        setJWTCookie(res, token);
-        
-        res.json({
-          message: 'Login successful',
-          user: {
-            id: user.discordId,
-            username: user.username || user.discordId,
-            role: user.role
-          }
-        });
-      } catch (error) {
-        console.error('[Auth] Error during username/password login:', error);
-        res.status(500).json({ error: 'Internal server error' });
+// Username/Password login
+router.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    console.log('[Auth] Attempting username/password login for username:', username);
+    
+    // Get user by username
+    const user = await userService.getUserByUsername(username);
+    
+    if (!user) {
+      console.log('[Auth] User not found for username:', username);
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    console.log('[Auth] User found:', user.discordId, 'Has password:', !!user.password, 'Password length:', user.password ? user.password.length : 0);
+    console.log('[Auth] User details:', {
+      discordId: user.discordId,
+      username: user.username,
+      role: user.role,
+      hasPassword: !!user.password,
+      passwordPrefix: user.password ? user.password.substring(0, 10) + '...' : 'none'
+    });
+    
+    // Check if user has a password set
+    if (!user.password || user.password === '') {
+      console.log('[Auth] User has no password set');
+      return res.status(401).json({ error: 'Password login not available for this user. Please use Discord login or set a password first.' });
+    }
+    
+    // Verify password
+    console.log('[Auth] Verifying password...');
+    const isValidPassword = await userService.verifyPassword(password, user.password);
+    
+    console.log('[Auth] Password verification result:', isValidPassword);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    // Generate JWT token
+    const token = generateToken({
+      id: user.discordId,
+      username: user.username || user.discordId,
+      role: user.role
+    });
+    
+    console.log('[Auth] Successful username/password login for user:', user.discordId);
+    
+    // Set JWT as HTTP-only cookie
+    setJWTCookie(res, token);
+    
+    res.json({
+      message: 'Login successful',
+      user: {
+        id: user.discordId,
+        username: user.username || user.discordId,
+        role: user.role
       }
     });
+  } catch (error) {
+    console.error('[Auth] Error during username/password login:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
-    // Get current user
-    // Apply JWT verification middleware first
-    router.get('/me', verifyJWT, (req, res) => {
-      if (req.user) {
-        res.json(req.user);
-      } else {
-        res.status(401).json({ error: 'Not authenticated' });
-      }
-    });
+// Get current user
+// Apply JWT verification middleware first
+router.get('/me', verifyJWT, (req, res) => {
+  if (req.user) {
+    res.json(req.user);
+  } else {
+    res.status(401).json({ error: 'Not authenticated' });
+  }
+});
 
-    module.exports = router;
-
+module.exports = router;

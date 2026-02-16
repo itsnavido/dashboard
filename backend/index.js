@@ -5,17 +5,20 @@ require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const passport = require('passport');
 const { verifyJWT } = require('./middleware/auth');
 
+// API route modules
 const authRoutes = require('./api/auth');
 const paymentsRoutes = require('./api/payments');
 const sellersRoutes = require('./api/sellers');
 const usersRoutes = require('./api/users');
 const analyticsRoutes = require('./api/analytics');
 
+// Create Express application instance
 const app = express();
 
-// Middleware
+// Configure CORS middleware
 // For single deployment, allow same origin. For separate deployments, use FRONTEND_URL
 const corsOrigin = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? true : 'http://localhost:3000');
 app.use(cors({
@@ -23,6 +26,7 @@ app.use(cors({
   credentials: true
 }));
 
+// Request body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -30,7 +34,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Initialize Passport (needed for Discord OAuth, but we don't use Passport sessions)
-const passport = require('passport');
 app.use(passport.initialize());
 
 // Apply JWT verification middleware globally
@@ -38,7 +41,7 @@ app.use(passport.initialize());
 // Protected routes will use requireAuth to check if req.user exists
 app.use(verifyJWT);
 
-// Health check - define early for easy access
+// Health check endpoint - define early for easy access
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok',
@@ -60,12 +63,13 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       payments: '/api/payments',
       sellers: '/api/sellers',
-      users: '/api/users'
+      users: '/api/users',
+      analytics: '/api/analytics'
     }
   });
 });
 
-// API Routes
+// Mount API route modules
 app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/sellers', sellersRoutes);
@@ -88,6 +92,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Server configuration
 const PORT = process.env.PORT || 5000;
 
 // For local development
@@ -100,4 +105,3 @@ if (require.main === module) {
 // Export for Vercel serverless functions
 // Vercel expects the app to be exported directly for @vercel/node
 module.exports = app;
-

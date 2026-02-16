@@ -123,4 +123,3 @@ router.delete('/:discordId', requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
-
