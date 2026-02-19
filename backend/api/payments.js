@@ -355,7 +355,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
-      noteAdmin: getValue(cols.noteAdmin)
+      paymentTime: getValue(cols.paymentTime)
     };
     
     const updateData = {};
