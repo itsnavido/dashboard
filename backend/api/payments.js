@@ -215,10 +215,26 @@ router.post('/', requireAuth, async (req, res) => {
       dueDateFormatted = utils.formatDate(calculatedDueDate);
     } else {
       // Calculate payment duration from provided dueDate
-      const now = new Date();
-      const dueDateObj = new Date(dueDateFormatted.split(' ')[0].split('/').reverse().join('-') + 'T' + dueDateFormatted.split(' ')[1]);
-      const diffMs = dueDateObj.getTime() - now.getTime();
-      paymentDurationHours = Math.round(diffMs / (1000 * 60 * 60));
+      // Format: DD/MM/YYYY HH:MM:SS
+      try {
+        const [datePart, timePart] = dueDateFormatted.split(' ');
+        const [day, month, year] = datePart.split('/');
+        const [hours, minutes, seconds] = timePart.split(':');
+        const dueDateObj = new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hours),
+          parseInt(minutes),
+          parseInt(seconds)
+        );
+        const now = new Date();
+        const diffMs = dueDateObj.getTime() - now.getTime();
+        paymentDurationHours = Math.round(diffMs / (1000 * 60 * 60));
+      } catch (error) {
+        console.error('Error parsing dueDate for paymentDuration:', error);
+        paymentDurationHours = 24; // Default fallback
+      }
     }
     
     const time = utils.formatDate();
