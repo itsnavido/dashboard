@@ -198,9 +198,9 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: discordId, amount, and ppu are required' });
     }
     
-    // Calculate total: always amount * PPU
-    const amountNum = parseFloat(amount) || 0;
-    const ppuNum = parseFloat(ppu) || 0;
+    // Calculate total: always amount * PPU (ignore any total value sent from frontend)
+    const amountNum = parseFloat(String(amount).replace(/,/g, '')) || 0;
+    const ppuNum = parseFloat(String(ppu).replace(/,/g, '')) || 0;
     const total = amountNum * ppuNum;
     
     // Use provided dueDate or calculate from Payment Info
