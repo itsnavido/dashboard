@@ -180,6 +180,7 @@ router.post('/', requireAuth, async (req, res) => {
       discordId,
       amount,
       ppu,
+      dueDate,
       paymentSource,
       paymentMethod,
       currency,
@@ -202,14 +203,18 @@ router.post('/', requireAuth, async (req, res) => {
     const ppuNum = parseFloat(ppu) || 0;
     const total = amountNum * ppuNum;
     
-    // Get Payment Info to calculate due date
-    const paymentInfo = await sheets.getPaymentInfoOptions();
-    const dueDateHours = paymentInfo.dueDateInfo.hours || 24;
-    
-    // Calculate due date: current time + hours from Payment Info
-    const now = new Date();
-    const dueDate = new Date(now.getTime() + (dueDateHours * 60 * 60 * 1000));
-    const dueDateFormatted = utils.formatDate(dueDate);
+    // Use provided dueDate or calculate from Payment Info
+    let dueDateFormatted = dueDate;
+    if (!dueDateFormatted) {
+      // Get Payment Info to calculate due date if not provided
+      const paymentInfo = await sheets.getPaymentInfoOptions();
+      const dueDateHours = paymentInfo.dueDateInfo.hours || 24;
+      
+      // Calculate due date: current time + hours from Payment Info
+      const now = new Date();
+      const calculatedDueDate = new Date(now.getTime() + (dueDateHours * 60 * 60 * 1000));
+      dueDateFormatted = utils.formatDate(calculatedDueDate);
+    }
     
     const time = utils.formatDate();
     const uniqueID = utils.generateUniqueId();

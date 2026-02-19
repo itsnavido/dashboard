@@ -21,7 +21,8 @@ const PaymentForm = ({ onSuccess }) => {
     paymentMethod: '',
     currency: '',
     note: '',
-    noteAdmin: ''
+    noteAdmin: '',
+    dueDate: ''
   });
 
   const [sellerInfo, setSellerInfo] = useState({
@@ -99,6 +100,28 @@ const PaymentForm = ({ onSuccess }) => {
       }));
     }
   }, [formData.amount, formData.ppu]);
+
+  // Calculate due date when payment info is loaded
+  useEffect(() => {
+    if (paymentInfoOptions.dueDateInfo && paymentInfoOptions.dueDateInfo.hours) {
+      const now = new Date();
+      const dueDate = new Date(now.getTime() + (paymentInfoOptions.dueDateInfo.hours * 60 * 60 * 1000));
+      
+      // Format as DD/MM/YYYY HH:MM:SS (same format as backend)
+      const day = String(dueDate.getDate()).padStart(2, '0');
+      const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+      const year = dueDate.getFullYear();
+      const hours = String(dueDate.getHours()).padStart(2, '0');
+      const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+      const seconds = String(dueDate.getSeconds()).padStart(2, '0');
+      
+      const formattedDueDate = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      setFormData(prev => ({
+        ...prev,
+        dueDate: formattedDueDate
+      }));
+    }
+  }, [paymentInfoOptions.dueDateInfo]);
 
   const fetchSellerData = async () => {
     const discordId = formData.discordId.replace(/\s/g, '');
@@ -220,6 +243,23 @@ const PaymentForm = ({ onSuccess }) => {
         }
       }
       
+      // Recalculate due date before submission to ensure it's current
+      let finalDueDate = formData.dueDate;
+      if (paymentInfoOptions.dueDateInfo && paymentInfoOptions.dueDateInfo.hours) {
+        const now = new Date();
+        const dueDate = new Date(now.getTime() + (paymentInfoOptions.dueDateInfo.hours * 60 * 60 * 1000));
+        
+        // Format as DD/MM/YYYY HH:MM:SS (same format as backend)
+        const day = String(dueDate.getDate()).padStart(2, '0');
+        const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const year = dueDate.getFullYear();
+        const hours = String(dueDate.getHours()).padStart(2, '0');
+        const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+        const seconds = String(dueDate.getSeconds()).padStart(2, '0');
+        
+        finalDueDate = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      }
+      
       // Prepare payment data for submission
       // Note: IBAN uses sellerInfo.sheba, Paypal Address uses sellerInfo.paypalWallet
       const paymentData = {
@@ -227,6 +267,7 @@ const PaymentForm = ({ onSuccess }) => {
         amount: formData.amount.replace(/,/g, ''),
         ppu: formData.ppu.replace(/,/g, ''),
         total: formData.total.replace(/,/g, ''),
+        dueDate: finalDueDate, // Due date calculated from Payment Info hours
         paymentSource: formData.paymentSource,
         paymentMethod: formData.paymentMethod,
         currency: formData.currency,
@@ -248,6 +289,7 @@ const PaymentForm = ({ onSuccess }) => {
         `مقدار: ${formData.amount}\n` +
         `قیمت واحد (PPU): ${formData.ppu}\n` +
         `مبلغ کل: ${formData.total}\n` +
+        (finalDueDate ? `Due Date: ${finalDueDate}\n` : '') +
         (formData.paymentSource ? `Payment Source: ${formData.paymentSource}\n` : '') +
         (formData.paymentMethod ? `Payment Method: ${formData.paymentMethod}\n` : '') +
         (formData.currency ? `Currency: ${formData.currency}\n` : '') +
@@ -268,7 +310,8 @@ const PaymentForm = ({ onSuccess }) => {
         paymentMethod: '',
         currency: '',
         note: '',
-        noteAdmin: ''
+        noteAdmin: '',
+        dueDate: ''
       });
       setSellerInfo({
         shomareSheba: '',
@@ -398,6 +441,18 @@ const PaymentForm = ({ onSuccess }) => {
                     value={formData.total}
                     readOnly
                     className="bg-muted cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Due Date</Label>
+                  <Input
+                    id="dueDate"
+                    name="dueDate"
+                    value={formData.dueDate}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    placeholder={paymentInfoOptions.dueDateInfo?.title || 'Due Date'}
                   />
                 </div>
 
