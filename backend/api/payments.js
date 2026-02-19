@@ -281,12 +281,12 @@ router.post('/', requireAuth, async (req, res) => {
         price: ppuNum,
         gheymat: total,
         paymentDuration: paymentDurationOption || '',
-        realm: '', // No longer used
+        realm: paymentSource || '', // Payment Source sent as Realm
         admin: adminName,
         note: note || '',
         time,
         id: uniqueID,
-        sheba: '', // No longer used
+        sheba: iban || '', // Sheba (shomareSheba) sent as iban
         name: name || '',
         action: 'create'
       });
@@ -494,6 +494,12 @@ router.put('/:id', requireAuth, async (req, res) => {
       oldPpu: currentPayment.ppu,
       oldAmount: currentPayment.amount,
       oldTotal: currentPayment.total,
+      // Legacy fields for webhook compatibility
+      realm: (req.body.paymentSource !== undefined ? req.body.paymentSource : currentPayment.paymentSource) || '',
+      sheba: (req.body.iban !== undefined ? req.body.iban : currentPayment.iban) || '',
+      price: (req.body.ppu !== undefined ? req.body.ppu : currentPayment.ppu) || '',
+      gheymat: (req.body.total !== undefined ? req.body.total : currentPayment.total) || '',
+      admin: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown'
     };
     
     // Send Discord webhook
@@ -656,10 +662,10 @@ router.delete('/:id', requireAuth, async (req, res) => {
       // Legacy fields for webhook compatibility
       price: getValue(cols.ppu),
       gheymat: getValue(cols.total),
-      realm: '',
-      sheba: '',
+      realm: getValue(cols.paymentSource) || '', // Payment Source sent as Realm
+      sheba: getValue(cols.iban) || '', // Sheba (shomareSheba) sent as iban
       phone: '',
-      admin: '',
+      admin: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
       processed: false
     };
     
