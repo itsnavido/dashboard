@@ -1,16 +1,19 @@
 // Utility functions
+const crypto = require('crypto');
 
 /**
- * Generate unique ID similar to Google Apps Script function
+ * Generate 256-bit hash-based unique ID (64 hex characters)
  */
 function generateUniqueId() {
-  const timestamp = Date.now(); // Current timestamp in milliseconds
-  const randomPart = Math.floor(Math.random() * 1e6).toString(); // Random number up to 999999
-  const uniqueId = (timestamp.toString() + randomPart).substring(0, 14); // Concatenate and limit length to 14
-  const minLength = 8;
-  const maxLength = 14;
-  const finalId = uniqueId.substring(0, Math.max(minLength, Math.min(maxLength, uniqueId.length)));
-  return finalId;
+  // Create a hash from timestamp + random data
+  const timestamp = Date.now().toString();
+  const randomData = crypto.randomBytes(16).toString('hex'); // 32 hex characters
+  const combined = timestamp + randomData;
+  
+  // Generate SHA-256 hash (256 bits = 32 bytes = 64 hex characters)
+  const hash = crypto.createHash('sha256').update(combined).digest('hex');
+  
+  return hash; // Returns 64 hex characters (256 bits)
 }
 
 /**

@@ -120,9 +120,16 @@ const PaymentList = ({ onEdit, onDelete }) => {
         let bVal = b[sortColumn];
         
         // Handle numeric values
-        if (sortColumn === 'amount' || sortColumn === 'price' || sortColumn === 'gheymat') {
+        if (sortColumn === 'amount' || sortColumn === 'price' || sortColumn === 'gheymat' || sortColumn === 'total' || sortColumn === 'ppu') {
           aVal = parseFloat(String(aVal || '').replace(/,/g, '')) || 0;
           bVal = parseFloat(String(bVal || '').replace(/,/g, '')) || 0;
+        }
+        
+        // Handle status column - convert to sortable values
+        if (sortColumn === 'status') {
+          const statusOrder = { 'Paid': 1, 'Unpaid': 2, 'Failed': 3 };
+          aVal = statusOrder[getPaymentStatus(aVal)] || 99;
+          bVal = statusOrder[getPaymentStatus(bVal)] || 99;
         }
         
         // Handle string values
@@ -236,8 +243,8 @@ const PaymentList = ({ onEdit, onDelete }) => {
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className={`font-semibold ${rowColor || 'text-foreground'}`}>
-                  {payment.uniqueID || payment.id}
+                <span className={`font-semibold font-mono text-xs ${rowColor || 'text-foreground'}`} title={payment.uniqueID || payment.id}>
+                  {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
                 </span>
                 <Badge 
                   variant={paymentStatus === 'Paid' ? 'success' : paymentStatus === 'Failed' ? 'destructive' : 'warning'} 
@@ -562,6 +569,15 @@ const PaymentList = ({ onEdit, onDelete }) => {
                               {getSortIcon('paymentMethod')}
                             </div>
                           </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
+                            onClick={() => handleSort('status')}
+                          >
+                            <div className="flex items-center truncate">
+                              Status
+                              {getSortIcon('status')}
+                            </div>
+                          </TableHead>
                           <TableHead className="text-right min-w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -589,8 +605,10 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                     )}
                                   </Button>
                                 </TableCell>
-                                <TableCell className={`font-medium ${rowColor || ''} truncate`}>
-                                  {payment.uniqueID || payment.id}
+                                <TableCell className={`font-medium ${rowColor || ''} truncate`} title={payment.uniqueID || payment.id}>
+                                  <span className="font-mono text-xs">
+                                    {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
+                                  </span>
                                 </TableCell>
                                 <TableCell className={`${rowColor || ''} truncate`}>{payment.time}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.userid}</TableCell>

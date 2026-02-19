@@ -239,11 +239,11 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.status] = ''; // Status field is not written to (left empty)
     paymentData[cols.noteAdmin] = noteAdmin || '';
     
-    // Add to payment sheet - create array in correct column order (18 columns: 0-17)
-    const rowData = new Array(18).fill('');
+    // Add to payment sheet - create array in correct column order (17 columns: 0-16)
+    const rowData = new Array(17).fill('');
     Object.keys(paymentData).forEach(colIndex => {
       const idx = parseInt(colIndex);
-      if (!isNaN(idx) && idx < 18) {
+      if (!isNaN(idx) && idx < 17) {
         rowData[idx] = paymentData[colIndex];
       }
     });
