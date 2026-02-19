@@ -737,8 +737,7 @@ async function getPaymentInfoOptions() {
     const paymentSources = [];
     const paymentMethods = [];
     const currencies = [];
-    let dueDateTitle = '';
-    let dueDateHours = 0;
+    const dueDateOptions = [];
     
     rows.forEach((row) => {
       // Access raw data directly (columns are 0-indexed)
@@ -762,29 +761,40 @@ async function getPaymentInfoOptions() {
         currencies.push(currency.trim());
       }
       
-      // Column D (index 3): Due Date title (take first non-empty value)
-      if (!dueDateTitle && rawData[3] && rawData[3].trim()) {
-        dueDateTitle = rawData[3].trim();
-      }
+      // Column D (index 3): Due Date title
+      // Column E (index 4): Hours till due date
+      const dueDateTitle = rawData[3] || '';
+      const dueDateHours = rawData[4];
       
-      // Column E (index 4): Hours till due date (take first non-empty numeric value)
-      if (dueDateHours === 0 && rawData[4]) {
-        const hoursValue = rawData[4];
-        const parsedHours = parseFloat(hoursValue);
+      // If both title and hours are present, add as an option
+      if (dueDateTitle && dueDateTitle.trim() && dueDateHours) {
+        const parsedHours = parseFloat(dueDateHours);
         if (!isNaN(parsedHours) && parsedHours > 0) {
-          dueDateHours = parsedHours;
+          // Check if this option already exists (avoid duplicates)
+          const exists = dueDateOptions.some(opt => 
+            opt.title === dueDateTitle.trim() && opt.hours === parsedHours
+          );
+          if (!exists) {
+            dueDateOptions.push({
+              title: dueDateTitle.trim(),
+              hours: parsedHours
+            });
+          }
         }
       }
     });
+    
+    // Default due date info (use first option if available, otherwise defaults)
+    const defaultDueDateInfo = dueDateOptions.length > 0 
+      ? dueDateOptions[0]
+      : { title: 'Due Date', hours: 24 };
     
     return {
       paymentSources: paymentSources.filter(Boolean),
       paymentMethods: paymentMethods.filter(Boolean),
       currencies: currencies.filter(Boolean),
-      dueDateInfo: {
-        title: dueDateTitle || 'Due Date',
-        hours: dueDateHours || 24 // Default to 24 hours if not found
-      }
+      dueDateOptions: dueDateOptions, // All available due date options
+      dueDateInfo: defaultDueDateInfo // Default/selected due date info
     };
   } catch (error) {
     console.error('Error fetching Payment Info options:', error);
@@ -793,6 +803,7 @@ async function getPaymentInfoOptions() {
       paymentSources: [],
       paymentMethods: [],
       currencies: [],
+      dueDateOptions: [],
       dueDateInfo: {
         title: 'Due Date',
         hours: 24
