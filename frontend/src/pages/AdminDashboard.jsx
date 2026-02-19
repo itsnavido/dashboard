@@ -7,7 +7,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 import api from '@/services/api';
 import { Link } from 'react-router-dom';
 import { CreditCard, DollarSign, TrendingUp, Users, Plus } from 'lucide-react';
-import { formatNumber, isPaymentPaid } from '@/utils';
+import { formatNumber } from '@/utils';
+
+// Get payment status from Status column
+function getPaymentStatus(statusValue) {
+  if (!statusValue || statusValue === '') {
+    return 'Unpaid';
+  }
+  const status = String(statusValue).trim();
+  if (status.toLowerCase() === 'paid') {
+    return 'Paid';
+  }
+  if (status.toLowerCase() === 'failed') {
+    return 'Failed';
+  }
+  return 'Unpaid';
+}
 import { toast } from 'react-hot-toast';
 
 function AdminDashboard() {
@@ -31,10 +46,11 @@ function AdminDashboard() {
 
   const quickMarkPaid = async (paymentId) => {
     try {
-      await api.patch(`/payments/${paymentId}/status`, { columnQ: true });
+      await api.patch(`/payments/${paymentId}`, { status: 'Paid' });
       toast.success('Payment marked as paid');
       // Refetch payments
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
     } catch (error) {
       toast.error('Failed to update payment status');
     }
@@ -157,26 +173,31 @@ function AdminDashboard() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{payment.uniqueID}</span>
+                          <span className="font-medium font-mono text-xs">
+                            {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
+                          </span>
                           <span className={`px-2 py-1 text-xs rounded-full ${
-                            isPaymentPaid(payment.columnQ)
+                            getPaymentStatus(payment.status) === 'Paid'
                               ? 'bg-green-500/20 text-green-500'
+                              : getPaymentStatus(payment.status) === 'Failed'
+                              ? 'bg-red-500/20 text-red-500'
                               : 'bg-yellow-500/20 text-yellow-500'
                           }`}>
-                            {isPaymentPaid(payment.columnQ) ? 'Paid' : 'Unpaid'}
+                            {getPaymentStatus(payment.status)}
                           </span>
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {payment.userid} • {payment.realm} • {payment.time}
+                          {payment.userid} • {payment.time}
+                          {payment.dueDate && ` • Due: ${payment.dueDate}`}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <div className="font-semibold">
-                            {formatNumber(parseFloat(payment.gheymat || 0))} Rial
+                            {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
                           </div>
                         </div>
-                        {!isPaymentPaid(payment.columnQ) && (
+                        {getPaymentStatus(payment.status) !== 'Paid' && (
                           <Button
                             size="sm"
                             onClick={() => quickMarkPaid(payment.id)}

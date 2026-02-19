@@ -543,7 +543,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             </div>
                           </TableHead>
                           <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden lg:table-cell"
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden xl:table-cell"
                             onClick={() => handleSort('paymentMethod')}
                           >
                             <div className="flex items-center truncate">
@@ -615,7 +615,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.dueDate || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.amount}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.ppu || payment.price || ''}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentMethod || ''}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.paymentMethod || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate`}>
                                   {(payment.total || payment.gheymat) ? (
                                     <>

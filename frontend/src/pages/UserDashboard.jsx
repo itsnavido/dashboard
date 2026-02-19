@@ -5,7 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import api from '@/services/api';
 import { useAuth } from '@/hooks/useAuth';
-import { formatNumber, isPaymentPaid } from '@/utils';
+import { formatNumber } from '@/utils';
+
+// Get payment status from Status column
+function getPaymentStatus(statusValue) {
+  if (!statusValue || statusValue === '') {
+    return 'Unpaid';
+  }
+  const status = String(statusValue).trim();
+  if (status.toLowerCase() === 'paid') {
+    return 'Paid';
+  }
+  if (status.toLowerCase() === 'failed') {
+    return 'Failed';
+  }
+  return 'Unpaid';
+}
 import { CreditCard, DollarSign, Clock } from 'lucide-react';
 
 function UserDashboard() {
@@ -23,14 +38,14 @@ function UserDashboard() {
   const stats = payments
     ? {
         totalPayments: payments.length,
-        paidPayments: payments.filter(p => isPaymentPaid(p.columnQ)).length,
-        unpaidPayments: payments.filter(p => !isPaymentPaid(p.columnQ)).length,
+        paidPayments: payments.filter(p => getPaymentStatus(p.status) === 'Paid').length,
+        unpaidPayments: payments.filter(p => getPaymentStatus(p.status) !== 'Paid').length,
         totalPaid: payments
-          .filter(p => isPaymentPaid(p.columnQ))
-          .reduce((sum, p) => sum + (parseFloat(p.gheymat || 0) || 0), 0),
+          .filter(p => getPaymentStatus(p.status) === 'Paid')
+          .reduce((sum, p) => sum + (parseFloat((p.total || p.gheymat || '0').toString().replace(/,/g, '')) || 0), 0),
         totalPending: payments
-          .filter(p => !isPaymentPaid(p.columnQ))
-          .reduce((sum, p) => sum + (parseFloat(p.gheymat || 0) || 0), 0),
+          .filter(p => getPaymentStatus(p.status) !== 'Paid')
+          .reduce((sum, p) => sum + (parseFloat((p.total || p.gheymat || '0').toString().replace(/,/g, '')) || 0), 0),
       }
     : {
         totalPayments: 0,
@@ -130,22 +145,26 @@ function UserDashboard() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{payment.uniqueID}</span>
+                          <span className="font-medium font-mono text-xs">
+                            {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
+                          </span>
                           <Badge
-                            variant={isPaymentPaid(payment.columnQ) ? 'success' : 'warning'}
+                            variant={getPaymentStatus(payment.status) === 'Paid' ? 'success' : getPaymentStatus(payment.status) === 'Failed' ? 'destructive' : 'warning'}
                           >
-                            {isPaymentPaid(payment.columnQ) ? 'Paid' : 'Unpaid'}
+                            {getPaymentStatus(payment.status)}
                           </Badge>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
-                          <div>Realm: {payment.realm}</div>
                           <div>Date: {payment.time}</div>
+                          {payment.dueDate && <div>Due Date: {payment.dueDate}</div>}
+                          {payment.paymentSource && <div>Payment Source: {payment.paymentSource}</div>}
+                          {payment.paymentMethod && <div>Payment Method: {payment.paymentMethod}</div>}
                           {payment.note && <div>Note: {payment.note}</div>}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-semibold text-lg">
-                          {formatNumber(parseFloat(payment.gheymat || 0))} Rial
+                          {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
                         </div>
                       </div>
                     </div>
