@@ -64,10 +64,24 @@ const PaymentForm = ({ onSuccess }) => {
       setLoadingPaymentInfo(true);
       try {
         const response = await api.get('/payment-info');
-        setPaymentInfoOptions(response.data);
+        if (response && response.data) {
+          setPaymentInfoOptions({
+            paymentSources: response.data.paymentSources || [],
+            paymentMethods: response.data.paymentMethods || [],
+            dueDateOptions: response.data.dueDateOptions || [],
+            dueDateInfo: response.data.dueDateInfo || { title: 'Due Date', hours: 24 }
+          });
+        }
       } catch (error) {
         console.error('Error fetching Payment Info options:', error);
         toast.error('Failed to load payment options');
+        // Set defaults on error
+        setPaymentInfoOptions({
+          paymentSources: [],
+          paymentMethods: [],
+          dueDateOptions: [],
+          dueDateInfo: { title: 'Due Date', hours: 24 }
+        });
       } finally {
         setLoadingPaymentInfo(false);
       }
@@ -77,23 +91,38 @@ const PaymentForm = ({ onSuccess }) => {
 
   // Calculate total: always amount * PPU
   useEffect(() => {
-    if (formData.amount && formData.ppu) {
-      const amount = parseFloat(formData.amount.replace(/,/g, '')) || 0;
-      const ppu = parseFloat(formData.ppu.replace(/,/g, '')) || 0;
-      
-      if (amount > 0 && ppu > 0) {
-        const total = amount * ppu;
-        setFormData(prev => ({
-          ...prev,
-          total: formatNumber(total, true)
-        }));
+    try {
+      if (formData.amount && formData.ppu) {
+        const amount = parseFloat(String(formData.amount).replace(/,/g, '')) || 0;
+        const ppu = parseFloat(String(formData.ppu).replace(/,/g, '')) || 0;
+        
+        if (amount > 0 && ppu > 0) {
+          const total = amount * ppu;
+          if (!isNaN(total) && isFinite(total)) {
+            setFormData(prev => ({
+              ...prev,
+              total: formatNumber(total, true)
+            }));
+          } else {
+            setFormData(prev => ({
+              ...prev,
+              total: ''
+            }));
+          }
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            total: ''
+          }));
+        }
       } else {
         setFormData(prev => ({
           ...prev,
           total: ''
         }));
       }
-    } else {
+    } catch (error) {
+      console.error('Error calculating total:', error);
       setFormData(prev => ({
         ...prev,
         total: ''
@@ -103,36 +132,54 @@ const PaymentForm = ({ onSuccess }) => {
 
   // Set default due date option when options are loaded
   useEffect(() => {
-    if (paymentInfoOptions.dueDateOptions && paymentInfoOptions.dueDateOptions.length > 0 && !selectedDueDateOption) {
-      // Set first option as default
-      const firstOption = paymentInfoOptions.dueDateOptions[0];
-      setSelectedDueDateOption(`${firstOption.title}|${firstOption.hours}`);
+    try {
+      if (paymentInfoOptions.dueDateOptions && paymentInfoOptions.dueDateOptions.length > 0 && !selectedDueDateOption) {
+        // Set first option as default
+        const firstOption = paymentInfoOptions.dueDateOptions[0];
+        if (firstOption && firstOption.title && firstOption.hours) {
+          setSelectedDueDateOption(`${firstOption.title}|${firstOption.hours}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error setting default due date option:', error);
     }
   }, [paymentInfoOptions.dueDateOptions, selectedDueDateOption]);
 
   // Calculate due date based on selected option
   useEffect(() => {
     if (selectedDueDateOption) {
-      const [title, hoursStr] = selectedDueDateOption.split('|');
-      const hours = parseFloat(hoursStr);
-      
-      if (!isNaN(hours) && hours > 0) {
-        const now = new Date();
-        const dueDate = new Date(now.getTime() + (hours * 60 * 60 * 1000));
+      try {
+        const [title, hoursStr] = selectedDueDateOption.split('|');
+        if (!title || !hoursStr) return;
         
-        // Format as DD/MM/YYYY HH:MM:SS (same format as backend)
-        const day = String(dueDate.getDate()).padStart(2, '0');
-        const month = String(dueDate.getMonth() + 1).padStart(2, '0');
-        const year = dueDate.getFullYear();
-        const hoursStr_formatted = String(dueDate.getHours()).padStart(2, '0');
-        const minutes = String(dueDate.getMinutes()).padStart(2, '0');
-        const seconds = String(dueDate.getSeconds()).padStart(2, '0');
+        const hours = parseFloat(hoursStr);
         
-        const formattedDueDate = `${day}/${month}/${year} ${hoursStr_formatted}:${minutes}:${seconds}`;
-        setFormData(prev => ({
-          ...prev,
-          dueDate: formattedDueDate
-        }));
+        if (!isNaN(hours) && hours > 0) {
+          const now = new Date();
+          const dueDate = new Date(now.getTime() + (hours * 60 * 60 * 1000));
+          
+          // Validate date
+          if (isNaN(dueDate.getTime())) {
+            console.error('Invalid date calculated');
+            return;
+          }
+          
+          // Format as DD/MM/YYYY HH:MM:SS (same format as backend)
+          const day = String(dueDate.getDate()).padStart(2, '0');
+          const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+          const year = dueDate.getFullYear();
+          const hoursStr_formatted = String(dueDate.getHours()).padStart(2, '0');
+          const minutes = String(dueDate.getMinutes()).padStart(2, '0');
+          const seconds = String(dueDate.getSeconds()).padStart(2, '0');
+          
+          const formattedDueDate = `${day}/${month}/${year} ${hoursStr_formatted}:${minutes}:${seconds}`;
+          setFormData(prev => ({
+            ...prev,
+            dueDate: formattedDueDate
+          }));
+        }
+      } catch (error) {
+        console.error('Error calculating due date:', error);
       }
     }
   }, [selectedDueDateOption]);
@@ -144,6 +191,11 @@ const PaymentForm = ({ onSuccess }) => {
     setLoadingSeller(true);
     try {
       const response = await api.get(`/sellers/${discordId}`);
+      
+      // Check if response and response.data exist
+      if (!response || !response.data) {
+        throw new Error('Invalid response from server');
+      }
       
       if (response.data.error === 'Not Found') {
         setMessage('کاربر یافت نشد! لطفاً مشخصات کاربر جدید را ثبت نمایید');
@@ -160,6 +212,7 @@ const PaymentForm = ({ onSuccess }) => {
           paypalWallet: ''
         });
       } else {
+        // Safely extract seller info with defaults
         setSellerInfo({
           shomareSheba: response.data.sheba || '',
           shomareKart: response.data.card || '',
@@ -175,8 +228,26 @@ const PaymentForm = ({ onSuccess }) => {
       }
     } catch (error) {
       console.error('Error fetching seller data:', error);
-      setMessage('خطا در دریافت اطلاعات کاربر');
-      setMessageType('error');
+      // Handle different error types
+      if (error.response?.status === 404 || error.response?.data?.error === 'Not Found') {
+        setMessage('کاربر یافت نشد! لطفاً مشخصات کاربر جدید را ثبت نمایید');
+        setMessageType('error');
+        setUserFound(false);
+        setShowEdit(false);
+        setShowAdd(true);
+        setSellerInfo({
+          shomareSheba: '',
+          shomareKart: '',
+          name: '',
+          shomareTamas: '',
+          wallet: '',
+          paypalWallet: ''
+        });
+      } else {
+        setMessage('خطا در دریافت اطلاعات کاربر');
+        setMessageType('error');
+        toast.error('Failed to fetch seller information');
+      }
     } finally {
       setLoadingSeller(false);
     }
@@ -281,10 +352,17 @@ const PaymentForm = ({ onSuccess }) => {
       
       // Payment duration = due date option label (e.g. "Instant (1 hours)")
       let paymentDurationLabel = '';
-      if (selectedDueDateOption) {
-        const [title, hoursStr] = selectedDueDateOption.split('|');
-        const hours = parseFloat(hoursStr);
-        paymentDurationLabel = !isNaN(hours) ? `${title} (${hours} hours)` : title;
+      try {
+        if (selectedDueDateOption) {
+          const [title, hoursStr] = selectedDueDateOption.split('|');
+          if (title && hoursStr) {
+            const hours = parseFloat(hoursStr);
+            paymentDurationLabel = !isNaN(hours) ? `${title} (${hours} hours)` : title;
+          }
+        }
+      } catch (error) {
+        console.error('Error formatting payment duration:', error);
+        paymentDurationLabel = '';
       }
 
       // Prepare payment data for submission
