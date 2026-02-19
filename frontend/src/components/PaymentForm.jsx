@@ -458,6 +458,24 @@ const PaymentForm = ({ onSuccess }) => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Payment Method</Label>
+                  <Select
+                    value={formData.paymentMethod}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+                    disabled={loadingPaymentInfo}
+                  >
+                    <SelectTrigger id="paymentMethod">
+                      <SelectValue placeholder="Select Payment Method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentInfoOptions.paymentMethods.map((method, index) => (
+                        <SelectItem key={index} value={method}>{method}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="total">Total</Label>
                   <Input
                     id="total"
@@ -516,24 +534,6 @@ const PaymentForm = ({ onSuccess }) => {
                     <SelectContent>
                       {paymentInfoOptions.paymentSources.map((source, index) => (
                         <SelectItem key={index} value={source}>{source}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="paymentMethod">Payment Method</Label>
-                  <Select
-                    value={formData.paymentMethod}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
-                    disabled={loadingPaymentInfo}
-                  >
-                    <SelectTrigger id="paymentMethod">
-                      <SelectValue placeholder="Select Payment Method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentInfoOptions.paymentMethods.map((method, index) => (
-                        <SelectItem key={index} value={method}>{method}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

@@ -202,15 +202,23 @@ router.post('/', requireAuth, async (req, res) => {
     
     // Use provided dueDate or calculate from Payment Info
     let dueDateFormatted = dueDate;
+    let paymentDurationHours = 0;
     if (!dueDateFormatted) {
       // Get Payment Info to calculate due date if not provided
       const paymentInfo = await sheets.getPaymentInfoOptions();
       const dueDateHours = paymentInfo.dueDateInfo.hours || 24;
+      paymentDurationHours = dueDateHours;
       
       // Calculate due date: current time + hours from Payment Info
       const now = new Date();
       const calculatedDueDate = new Date(now.getTime() + (dueDateHours * 60 * 60 * 1000));
       dueDateFormatted = utils.formatDate(calculatedDueDate);
+    } else {
+      // Calculate payment duration from provided dueDate
+      const now = new Date();
+      const dueDateObj = new Date(dueDateFormatted.split(' ')[0].split('/').reverse().join('-') + 'T' + dueDateFormatted.split(' ')[1]);
+      const diffMs = dueDateObj.getTime() - now.getTime();
+      paymentDurationHours = Math.round(diffMs / (1000 * 60 * 60));
     }
     
     const time = utils.formatDate();
@@ -259,6 +267,7 @@ router.post('/', requireAuth, async (req, res) => {
         amount: amountNum,
         price: ppuNum,
         gheymat: total,
+        paymentDuration: paymentDurationHours,
         realm: '', // No longer used
         admin: adminName,
         note: note || '',
