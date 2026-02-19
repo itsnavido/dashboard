@@ -22,12 +22,9 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     paymentMethod: '',
     currency: '',
     card: '',
-    iban: '',
     name: '',
     wallet: '',
-    paypalAddress: '',
     note: '',
-    status: '',
     noteAdmin: ''
   });
 
@@ -70,12 +67,9 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
         paymentMethod: payment.paymentMethod || '',
         currency: payment.currency || '',
         card: payment.card || '',
-        iban: payment.iban || '',
         name: payment.name || '',
         wallet: payment.wallet || '',
-        paypalAddress: payment.paypalAddress || '',
         note: payment.note || '',
-        status: payment.status || '',
         noteAdmin: payment.noteAdmin || ''
       });
     }
@@ -313,39 +307,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="iban">Iban</Label>
-              <Input
-                type="text"
-                id="iban"
-                name="iban"
-                value={formData.iban}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paypalAddress">Paypal Address</Label>
-              <Input
-                type="text"
-                id="paypalAddress"
-                name="paypalAddress"
-                value={formData.paypalAddress}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Input
-                type="text"
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-              />
             </div>
 
             <div className="space-y-2">

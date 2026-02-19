@@ -252,7 +252,6 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 {payment.paymentSource && <div><strong>Payment Source:</strong> {payment.paymentSource}</div>}
                 {payment.paymentMethod && <div><strong>Payment Method:</strong> {payment.paymentMethod}</div>}
                 {payment.currency && <div><strong>Currency:</strong> {payment.currency}</div>}
-                {payment.status && <div><strong>Status:</strong> {payment.status}</div>}
               </div>
             </div>
             <div className="flex flex-col gap-2 ml-4">
@@ -541,15 +540,6 @@ const PaymentList = ({ onEdit, onDelete }) => {
                               {getSortIcon('paymentMethod')}
                             </div>
                           </TableHead>
-                          <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
-                            onClick={() => handleSort('status')}
-                          >
-                            <div className="flex items-center truncate">
-                              Status
-                              {getSortIcon('status')}
-                            </div>
-                          </TableHead>
                           <TableHead className="text-right min-w-[140px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -596,8 +586,8 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentSource || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentMethod || ''}</TableCell>
                                 <TableCell>
-                                  <Badge variant={payment.status ? 'default' : (isPaid ? 'success' : 'warning')} className="text-xs">
-                                    {payment.status || (isPaid ? (
+                                  <Badge variant={isPaid ? 'success' : 'warning'} className="text-xs">
+                                    {isPaid ? (
                                       <>
                                         <CheckCircle2 className="h-3 w-3 mr-1" />
                                         Paid
@@ -607,7 +597,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                         <XCircle className="h-3 w-3 mr-1" />
                                         Unpaid
                                       </>
-                                    ))}
+                                    )}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">

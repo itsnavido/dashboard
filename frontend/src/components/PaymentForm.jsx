@@ -20,11 +20,8 @@ const PaymentForm = ({ onSuccess }) => {
     paymentSource: '',
     paymentMethod: '',
     currency: '',
-    iban: '',
-    paypalAddress: '',
     note: '',
-    noteAdmin: '',
-    status: ''
+    noteAdmin: ''
   });
 
   const [sellerInfo, setSellerInfo] = useState({
@@ -224,6 +221,7 @@ const PaymentForm = ({ onSuccess }) => {
       }
       
       // Prepare payment data for submission
+      // Note: IBAN uses sellerInfo.sheba, Paypal Address uses sellerInfo.paypalWallet
       const paymentData = {
         discordId: formData.discordId.replace(/\s/g, ''),
         amount: formData.amount.replace(/,/g, ''),
@@ -233,13 +231,13 @@ const PaymentForm = ({ onSuccess }) => {
         paymentMethod: formData.paymentMethod,
         currency: formData.currency,
         card: sellerInfo.shomareKart,
-        iban: formData.iban,
+        iban: sellerInfo.shomareSheba, // IBAN is same as sheba
         name: sellerInfo.name,
         wallet: sellerInfo.wallet || '',
-        paypalAddress: formData.paypalAddress,
+        paypalAddress: sellerInfo.paypalWallet || '', // Paypal Address is same as Paypal Wallet
         note: formData.note,
-        noteAdmin: formData.noteAdmin,
-        status: formData.status
+        noteAdmin: formData.noteAdmin
+        // Status field is not written to (left empty)
       };
 
       const response = await api.post('/payments', paymentData);
@@ -269,11 +267,8 @@ const PaymentForm = ({ onSuccess }) => {
         paymentSource: '',
         paymentMethod: '',
         currency: '',
-        iban: '',
-        paypalAddress: '',
         note: '',
-        noteAdmin: '',
-        status: ''
+        noteAdmin: ''
       });
       setSellerInfo({
         shomareSheba: '',
@@ -461,17 +456,6 @@ const PaymentForm = ({ onSuccess }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Input
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="note">یادداشت</Label>
                   <Input
                     id="note"
@@ -614,28 +598,6 @@ const PaymentForm = ({ onSuccess }) => {
               onChange={handleSellerInfoChange}
               autoComplete="off"
               disabled={!showEdit && !showAdd}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="iban">Iban</Label>
-            <Input
-              id="iban"
-              name="iban"
-              value={formData.iban}
-              onChange={handleInputChange}
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="paypalAddress">Paypal Address</Label>
-            <Input
-              id="paypalAddress"
-              name="paypalAddress"
-              value={formData.paypalAddress}
-              onChange={handleInputChange}
-              autoComplete="off"
             />
           </div>
         </CardContent>

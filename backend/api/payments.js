@@ -50,7 +50,6 @@ router.get('/', requireAuth, async (req, res) => {
         paypalAddress: getValue(cols.paypalAddress),
         uniqueID: getValue(cols.uniqueID),
         note: getValue(cols.note),
-        status: getValue(cols.status),
         noteAdmin: getValue(cols.noteAdmin),
         // Legacy fields for backward compatibility
         price: getValue(cols.ppu), // Alias for ppu
@@ -60,7 +59,8 @@ router.get('/', requireAuth, async (req, res) => {
         admin: '', // No longer in new structure
         processed: false,
         columnQ: false,
-        timeLeftToPay: ''
+        timeLeftToPay: '',
+        status: '' // Status field exists but not written to
       };
     });
     
@@ -152,7 +152,6 @@ router.get('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
-      status: getValue(cols.status),
       noteAdmin: getValue(cols.noteAdmin),
       // Legacy fields for backward compatibility
       price: getValue(cols.ppu),
@@ -163,7 +162,8 @@ router.get('/:id', requireAuth, async (req, res) => {
       admin: '',
       processed: false,
       columnQ: false,
-      timeLeftToPay: ''
+      timeLeftToPay: '',
+      status: '' // Status field exists but not written to
     };
     
     res.json(payment);
@@ -189,8 +189,7 @@ router.post('/', requireAuth, async (req, res) => {
       wallet,
       paypalAddress,
       note,
-      noteAdmin,
-      status
+      noteAdmin
     } = req.body;
     
     // Validate required fields
@@ -230,13 +229,13 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.paymentMethod] = paymentMethod || '';
     paymentData[cols.currency] = currency || '';
     paymentData[cols.card] = card || '';
-    paymentData[cols.iban] = iban || '';
+    paymentData[cols.iban] = iban || ''; // IBAN comes from sellerInfo.sheba (sent as iban)
     paymentData[cols.name] = name || '';
     paymentData[cols.wallet] = wallet || '';
-    paymentData[cols.paypalAddress] = paypalAddress || '';
+    paymentData[cols.paypalAddress] = paypalAddress || ''; // Paypal Address comes from sellerInfo.paypalWallet (sent as paypalAddress)
     paymentData[cols.uniqueID] = uniqueID;
     paymentData[cols.note] = note || '';
-    paymentData[cols.status] = status || '';
+    paymentData[cols.status] = ''; // Status field is not written to (left empty)
     paymentData[cols.noteAdmin] = noteAdmin || '';
     
     // Add to payment sheet - create array in correct column order (18 columns: 0-17)
@@ -337,7 +336,6 @@ router.put('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
-      status: getValue(cols.status),
       noteAdmin: getValue(cols.noteAdmin)
     };
     
@@ -450,12 +448,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         changes.note = { old: currentPayment.note, new: req.body.note };
       }
     }
-    if (req.body.status !== undefined) {
-      updateData[cols.status] = req.body.status;
-      if (req.body.status !== currentPayment.status) {
-        changes.status = { old: currentPayment.status, new: req.body.status };
-      }
-    }
+    // Status field is not updated (left empty)
     if (req.body.noteAdmin !== undefined) {
       updateData[cols.noteAdmin] = req.body.noteAdmin;
       if (req.body.noteAdmin !== currentPayment.noteAdmin) {
@@ -652,7 +645,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
-      status: getValue(cols.status),
       noteAdmin: getValue(cols.noteAdmin),
       action: 'delete',
       deletedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
