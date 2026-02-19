@@ -143,7 +143,6 @@ router.get('/:id', requireAuth, async (req, res) => {
       total: getValue(cols.total),
       paymentSource: getValue(cols.paymentSource),
       paymentMethod: getValue(cols.paymentMethod),
-      currency: getValue(cols.currency),
       card: getValue(cols.card),
       iban: getValue(cols.iban),
       name: getValue(cols.name),
@@ -267,8 +266,7 @@ router.post('/', requireAuth, async (req, res) => {
         id: uniqueID,
         sheba: '', // No longer used
         name: name || '',
-        action: 'create',
-        currency: currency || ''
+        action: 'create'
       });
     } catch (webhookError) {
       console.error('Discord webhook error:', webhookError);
@@ -283,7 +281,6 @@ router.post('/', requireAuth, async (req, res) => {
       total,
       paymentSource,
       paymentMethod,
-      currency,
       discordId
     });
     
@@ -330,7 +327,6 @@ router.put('/:id', requireAuth, async (req, res) => {
       total: getValue(cols.total),
       paymentSource: getValue(cols.paymentSource),
       paymentMethod: getValue(cols.paymentMethod),
-      currency: getValue(cols.currency),
       card: getValue(cols.card),
       iban: getValue(cols.iban),
       name: getValue(cols.name),
@@ -632,7 +628,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
       total: getValue(cols.total),
       paymentSource: getValue(cols.paymentSource),
       paymentMethod: getValue(cols.paymentMethod),
-      currency: getValue(cols.currency),
       card: getValue(cols.card),
       iban: getValue(cols.iban),
       name: getValue(cols.name),

@@ -291,23 +291,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select
-                value={formData.currency}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
-              >
-                <SelectTrigger id="currency">
-                  <SelectValue placeholder="Select Currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentInfoOptions.currencies.map((currency, index) => (
-                    <SelectItem key={index} value={currency}>{currency}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="noteAdmin">Note Admin</Label>
               <Input
                 type="text"

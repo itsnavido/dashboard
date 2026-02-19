@@ -270,12 +270,10 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 {(payment.total || payment.gheymat) && (
                   <div>
                     <strong>Total:</strong> {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
-                    {payment.currency && ` ${payment.currency}`}
                   </div>
                 )}
                 {payment.paymentSource && <div><strong>Payment Source:</strong> {payment.paymentSource}</div>}
                 {payment.paymentMethod && <div><strong>Payment Method:</strong> {payment.paymentMethod}</div>}
-                {payment.currency && <div><strong>Currency:</strong> {payment.currency}</div>}
               </div>
             </div>
             <div className="flex flex-col gap-2 ml-4">
