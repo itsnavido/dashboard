@@ -26,7 +26,7 @@ module.exports = {
   },
 
   // Column mappings for Payment v2 sheet (0-indexed)
-  // Headers: Timestamp, Due Date, Discord ID, Amount, PPU, Total, Payment Source, Payment Method, Currency, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note, Status, Note admin
+  // Headers: Timestamp, Due Date, Discord ID, Amount, PPU, Total, Payment Source, Payment Method, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note, Status, Note admin
   paymentSheetColumns: {
     time: 0,              // Timestamp
     dueDate: 1,           // Due Date
@@ -36,16 +36,15 @@ module.exports = {
     total: 5,             // Total (amount * PPU)
     paymentSource: 6,     // Payment Source
     paymentMethod: 7,     // Payment Method
-    currency: 8,           // Currency
-    card: 9,             // Card Number
-    iban: 10,             // Iban
-    name: 11,             // Name
-    wallet: 12,           // Wallet
-    paypalAddress: 13,    // Paypal Address
-    uniqueID: 14,         // UUID
-    note: 15,             // Note
-    status: 16,           // Status
-    noteAdmin: 17         // Note admin
+    card: 8,             // Card Number
+    iban: 9,             // Iban
+    name: 10,             // Name
+    wallet: 11,           // Wallet
+    paypalAddress: 12,    // Paypal Address
+    uniqueID: 13,         // UUID
+    note: 14,             // Note
+    status: 15,           // Status
+    noteAdmin: 16         // Note admin
   },
 
   // Column mappings for Seller Info sheet (0-indexed)

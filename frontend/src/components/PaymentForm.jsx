@@ -19,7 +19,6 @@ const PaymentForm = ({ onSuccess }) => {
     total: '',
     paymentSource: '',
     paymentMethod: '',
-    currency: '',
     note: '',
     noteAdmin: '',
     dueDate: ''
@@ -37,7 +36,6 @@ const PaymentForm = ({ onSuccess }) => {
   const [paymentInfoOptions, setPaymentInfoOptions] = useState({
     paymentSources: [],
     paymentMethods: [],
-    currencies: [],
     dueDateOptions: [],
     dueDateInfo: { title: 'Due Date', hours: 24 }
   });
@@ -292,7 +290,6 @@ const PaymentForm = ({ onSuccess }) => {
         dueDate: finalDueDate, // Due date calculated from Payment Info hours
         paymentSource: formData.paymentSource,
         paymentMethod: formData.paymentMethod,
-        currency: formData.currency,
         card: sellerInfo.shomareKart,
         iban: sellerInfo.shomareSheba, // IBAN is same as sheba
         name: sellerInfo.name,
@@ -314,7 +311,6 @@ const PaymentForm = ({ onSuccess }) => {
         (finalDueDate ? `Due Date: ${finalDueDate}\n` : '') +
         (formData.paymentSource ? `Payment Source: ${formData.paymentSource}\n` : '') +
         (formData.paymentMethod ? `Payment Method: ${formData.paymentMethod}\n` : '') +
-        (formData.currency ? `Currency: ${formData.currency}\n` : '') +
         (formData.note ? `یادداشت: ${formData.note}\n` : '') +
         (sellerInfo.name ? `نام: ${sellerInfo.name}\n` : '') +
         (sellerInfo.shomareKart ? `شماره کارت: ${sellerInfo.shomareKart}\n` : '') +
@@ -330,7 +326,6 @@ const PaymentForm = ({ onSuccess }) => {
           total: '',
           paymentSource: '',
           paymentMethod: '',
-          currency: '',
           note: '',
           noteAdmin: '',
           dueDate: ''

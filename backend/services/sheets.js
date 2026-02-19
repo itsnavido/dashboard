@@ -237,15 +237,15 @@ async function getPaymentRowsRaw() {
     // Read data starting from row 4 (skip header rows 1-3)
     const response = await client.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A4:R`, // A4:R means start from row 4, columns A-R (18 columns, rows 1-3 are headers)
+      range: `${sheetName}!A4:Q`, // A4:Q means start from row 4, columns A-Q (17 columns, rows 1-3 are headers)
     });
 
     const rows = response.data.values || [];
     
     // Convert to format compatible with google-spreadsheet row objects
     return rows.map((rowData, index) => {
-      // Pad row to 18 columns (A-R for Payment v2)
-      const paddedRow = new Array(18).fill('').map((_, i) => rowData[i] || '');
+      // Pad row to 17 columns (A-Q for Payment v2)
+      const paddedRow = new Array(17).fill('').map((_, i) => rowData[i] || '');
       
       return {
         _rawData: paddedRow,
@@ -298,7 +298,7 @@ async function addPaymentRowRaw(rowData) {
     // Append row using raw API (will append after existing data, after row 3)
     await client.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:R`, // Append to columns A-R (18 columns for Payment v2)
+      range: `${sheetName}!A:Q`, // Append to columns A-Q (17 columns for Payment v2)
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
@@ -733,10 +733,9 @@ async function getPaymentInfoOptions() {
     const sheet = await getSheet(config.sheetNames.paymentInfo);
     const rows = await sheet.getRows();
     
-    // Extract unique values from columns A, B, C
+    // Extract unique values from columns A, B
     const paymentSources = [];
     const paymentMethods = [];
-    const currencies = [];
     const dueDateOptions = [];
     
     rows.forEach((row) => {
@@ -755,11 +754,6 @@ async function getPaymentInfoOptions() {
         paymentMethods.push(paymentMethod.trim());
       }
       
-      // Column C (index 2): Currency
-      const currency = rawData[2] || '';
-      if (currency && currency.trim() && !currencies.includes(currency.trim())) {
-        currencies.push(currency.trim());
-      }
       
       // Column D (index 3): Due Date title
       // Column E (index 4): Hours till due date
@@ -792,7 +786,6 @@ async function getPaymentInfoOptions() {
     return {
       paymentSources: paymentSources.filter(Boolean),
       paymentMethods: paymentMethods.filter(Boolean),
-      currencies: currencies.filter(Boolean),
       dueDateOptions: dueDateOptions, // All available due date options
       dueDateInfo: defaultDueDateInfo // Default/selected due date info
     };
@@ -802,7 +795,6 @@ async function getPaymentInfoOptions() {
     return {
       paymentSources: [],
       paymentMethods: [],
-      currencies: [],
       dueDateOptions: [],
       dueDateInfo: {
         title: 'Due Date',

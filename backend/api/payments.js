@@ -42,7 +42,6 @@ router.get('/', requireAuth, async (req, res) => {
         total: getValue(cols.total),
         paymentSource: getValue(cols.paymentSource),
         paymentMethod: getValue(cols.paymentMethod),
-        currency: getValue(cols.currency),
         card: getValue(cols.card),
         iban: getValue(cols.iban),
         name: getValue(cols.name),
@@ -183,7 +182,6 @@ router.post('/', requireAuth, async (req, res) => {
       dueDate,
       paymentSource,
       paymentMethod,
-      currency,
       card,
       iban,
       name,
@@ -232,7 +230,6 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.total] = total.toString();
     paymentData[cols.paymentSource] = paymentSource || '';
     paymentData[cols.paymentMethod] = paymentMethod || '';
-    paymentData[cols.currency] = currency || '';
     paymentData[cols.card] = card || '';
     paymentData[cols.iban] = iban || ''; // IBAN comes from sellerInfo.sheba (sent as iban)
     paymentData[cols.name] = name || '';
@@ -411,12 +408,6 @@ router.put('/:id', requireAuth, async (req, res) => {
         changes.paymentMethod = { old: currentPayment.paymentMethod, new: req.body.paymentMethod };
       }
     }
-    if (req.body.currency !== undefined) {
-      updateData[cols.currency] = req.body.currency;
-      if (req.body.currency !== currentPayment.currency) {
-        changes.currency = { old: currentPayment.currency, new: req.body.currency };
-      }
-    }
     if (req.body.card !== undefined) {
       updateData[cols.card] = req.body.card;
       if (req.body.card !== currentPayment.card) {
@@ -491,7 +482,6 @@ router.put('/:id', requireAuth, async (req, res) => {
       oldPpu: currentPayment.ppu,
       oldAmount: currentPayment.amount,
       oldTotal: currentPayment.total,
-      currency: currentPayment.currency || ''
     };
     
     // Send Discord webhook

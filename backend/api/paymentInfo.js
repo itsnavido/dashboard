@@ -4,7 +4,7 @@ const sheets = require('../services/sheets');
 
 const router = express.Router();
 
-// Get Payment Info options (Payment Source, Payment Method, Currency, Due Date info)
+// Get Payment Info options (Payment Source, Payment Method, Due Date info)
 router.get('/', async (req, res) => {
   try {
     const options = await sheets.getPaymentInfoOptions();

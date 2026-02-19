@@ -603,7 +603,6 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                   {(payment.total || payment.gheymat) ? (
                                     <>
                                       {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
-                                      {payment.currency ? ` ${payment.currency}` : ' Rial'}
                                     </>
                                   ) : ''}
                                 </TableCell>
