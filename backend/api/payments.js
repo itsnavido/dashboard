@@ -50,6 +50,7 @@ router.get('/', requireAuth, async (req, res) => {
         paypalAddress: getValue(cols.paypalAddress),
         uniqueID: getValue(cols.uniqueID),
         note: getValue(cols.note),
+        status: getValue(cols.status), // Status column (R column)
         noteAdmin: getValue(cols.noteAdmin),
         // Legacy fields for backward compatibility
         price: getValue(cols.ppu), // Alias for ppu
@@ -59,8 +60,7 @@ router.get('/', requireAuth, async (req, res) => {
         admin: '', // No longer in new structure
         processed: false,
         columnQ: false,
-        timeLeftToPay: '',
-        status: '' // Status field exists but not written to
+        timeLeftToPay: ''
       };
     });
     
@@ -152,6 +152,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
+      status: getValue(cols.status), // Status column (R column)
       noteAdmin: getValue(cols.noteAdmin),
       // Legacy fields for backward compatibility
       price: getValue(cols.ppu),
@@ -162,8 +163,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       admin: '',
       processed: false,
       columnQ: false,
-      timeLeftToPay: '',
-      status: '' // Status field exists but not written to
+      timeLeftToPay: ''
     };
     
     res.json(payment);

@@ -2,6 +2,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { formatNumber, isPaymentPaid } from '../utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Get payment status from Status column (R column)
+function getPaymentStatus(statusValue) {
+  if (!statusValue || statusValue === '') {
+    return 'Unpaid';
+  }
+  const status = String(statusValue).trim();
+  if (status.toLowerCase() === 'paid') {
+    return 'Paid';
+  }
+  if (status.toLowerCase() === 'failed') {
+    return 'Failed';
+  }
+  return 'Unpaid';
+}
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -201,9 +216,10 @@ const PaymentList = ({ onEdit, onDelete }) => {
     const timeLeftStr = payment.timeLeftToPay || '';
     const isNegative = timeLeftStr.toString().trim().startsWith('-') || 
                      (timeLeftStr && !isNaN(parseFloat(timeLeftStr)) && parseFloat(timeLeftStr) < 0);
-    const isPaid = isPaymentPaid(payment.columnQ);
+    const paymentStatus = getPaymentStatus(payment.status);
     if (isNegative) return 'text-purple-400';
-    if (isPaid) return 'text-green-400';
+    if (paymentStatus === 'Paid') return 'text-green-400';
+    if (paymentStatus === 'Failed') return 'text-red-400';
     return '';
   };
 
@@ -212,7 +228,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
     const isExpanded = expandedPayments.has(payment.id);
     const logs = paymentLogs[payment.uniqueID] || [];
     const rowColor = getRowColor(payment);
-    const isPaid = isPaymentPaid(payment.columnQ);
+    const paymentStatus = getPaymentStatus(payment.status);
 
     return (
       <Card className="mb-4">
@@ -223,11 +239,19 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 <span className={`font-semibold ${rowColor || 'text-foreground'}`}>
                   {payment.uniqueID || payment.id}
                 </span>
-                <Badge variant={isPaid ? 'success' : 'warning'} className="text-xs">
-                  {isPaid ? (
+                <Badge 
+                  variant={paymentStatus === 'Paid' ? 'success' : paymentStatus === 'Failed' ? 'destructive' : 'warning'} 
+                  className="text-xs"
+                >
+                  {paymentStatus === 'Paid' ? (
                     <>
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Paid
+                    </>
+                  ) : paymentStatus === 'Failed' ? (
+                    <>
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Failed
                     </>
                   ) : (
                     <>
@@ -548,7 +572,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                           const isExpanded = expandedPayments.has(payment.id);
                           const logs = paymentLogs[payment.uniqueID] || [];
                           const rowColor = getRowColor(payment);
-                          const isPaid = isPaymentPaid(payment.columnQ);
+                          const paymentStatus = getPaymentStatus(payment.status);
 
                           return (
                             <React.Fragment key={payment.id}>
@@ -586,11 +610,19 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentSource || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentMethod || ''}</TableCell>
                                 <TableCell>
-                                  <Badge variant={isPaid ? 'success' : 'warning'} className="text-xs">
-                                    {isPaid ? (
+                                  <Badge 
+                                    variant={paymentStatus === 'Paid' ? 'success' : paymentStatus === 'Failed' ? 'destructive' : 'warning'} 
+                                    className="text-xs"
+                                  >
+                                    {paymentStatus === 'Paid' ? (
                                       <>
                                         <CheckCircle2 className="h-3 w-3 mr-1" />
                                         Paid
+                                      </>
+                                    ) : paymentStatus === 'Failed' ? (
+                                      <>
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                        Failed
                                       </>
                                     ) : (
                                       <>
