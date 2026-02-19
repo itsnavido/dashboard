@@ -53,18 +53,45 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-// Format time left in hours
-const formatTimeLeft = (timeLeftStr) => {
-  if (!timeLeftStr || timeLeftStr === '') return '';
+// Calculate time left from due date
+const calculateTimeLeft = (dueDateStr) => {
+  if (!dueDateStr || dueDateStr === '') return '';
   
-  const timeLeft = parseFloat(timeLeftStr.toString().replace(/,/g, ''));
-  if (isNaN(timeLeft)) return timeLeftStr;
-  
-  const formatted = timeLeft % 1 === 0 
-    ? timeLeft.toString() 
-    : timeLeft.toFixed(1);
-  
-  return `${formatted}h`;
+  try {
+    // Parse format: DD/MM/YYYY HH:MM:SS
+    const [datePart, timePart] = dueDateStr.split(' ');
+    if (!datePart || !timePart) return '';
+    
+    const [day, month, year] = datePart.split('/');
+    const [hours, minutes, seconds] = timePart.split(':');
+    
+    if (!day || !month || !year || !hours || !minutes || !seconds) return '';
+    
+    const dueDate = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hours),
+      parseInt(minutes),
+      parseInt(seconds)
+    );
+    
+    const now = new Date();
+    const diffMs = dueDate.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    if (isNaN(diffHours)) return '';
+    
+    const sign = diffHours < 0 ? '-' : '';
+    const absHours = Math.abs(diffHours);
+    const formatted = absHours % 1 === 0 
+      ? absHours.toString() 
+      : absHours.toFixed(1);
+    
+    return `${sign}${formatted}h`;
+  } catch (error) {
+    return '';
+  }
 };
 
 const PaymentList = ({ onEdit, onDelete }) => {
@@ -268,19 +295,96 @@ const PaymentList = ({ onEdit, onDelete }) => {
                   )}
                 </Badge>
               </div>
-              <div className={`text-sm space-y-1 ${rowColor || 'text-muted-foreground'}`}>
-                <div><strong>Discord:</strong> {payment.userid}</div>
-                <div><strong>Time:</strong> {payment.time}</div>
-                {payment.dueDate && <div><strong>Due Date:</strong> {payment.dueDate}</div>}
-                {payment.amount && <div><strong>Amount:</strong> {payment.amount}</div>}
-                {payment.ppu && <div><strong>PPU:</strong> {payment.ppu}</div>}
-                {payment.paymentMethod && <div><strong>Payment Method:</strong> {payment.paymentMethod}</div>}
-                {(payment.total || payment.gheymat) && (
+              <div className={`text-sm space-y-3 ${rowColor || 'text-muted-foreground'}`}>
+                {/* #1 TimeStamp */}
+                <div>
+                  <div><strong>#1 TimeStamp:</strong> {payment.time}</div>
+                  {payment.dueDate && (
+                    <div className="ml-4 text-xs">
+                      Due Date: {payment.dueDate} {calculateTimeLeft(payment.dueDate) && `(${calculateTimeLeft(payment.dueDate)})`}
+                    </div>
+                  )}
+                </div>
+
+                {/* #2 Discord ID */}
+                <div>
+                  <div><strong>#2 Discord ID:</strong> {payment.userid}</div>
+                  <div className="ml-4 text-xs font-mono">
+                    UUID: {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
+                  </div>
+                </div>
+
+                {/* #3 Payment Time */}
+                {payment.paymentTime && (
                   <div>
-                    <strong>Total:</strong> {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
+                    <div><strong>#3 Payment Time:</strong> {payment.paymentTime}</div>
                   </div>
                 )}
-                {payment.paymentSource && <div><strong>Payment Source:</strong> {payment.paymentSource}</div>}
+
+                {/* #4 Amount*PPU */}
+                <div>
+                  {payment.amount && payment.ppu && (
+                    <div><strong>#4 Amount*PPU:</strong> {payment.amount} × {payment.ppu}</div>
+                  )}
+                  {(payment.total || payment.gheymat) && (
+                    <div className="ml-4 text-xs">
+                      Total: {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
+                    </div>
+                  )}
+                </div>
+
+                {/* #5 Payment Source */}
+                <div>
+                  {payment.paymentSource && (
+                    <div><strong>#5 Payment Source:</strong> {payment.paymentSource}</div>
+                  )}
+                  {payment.paymentMethod && (
+                    <div className="ml-4 text-xs">
+                      Payment Method: {payment.paymentMethod}
+                    </div>
+                  )}
+                </div>
+
+                {/* #6 Sheba */}
+                <div>
+                  {payment.iban && (
+                    <div><strong>#6 Sheba:</strong> {payment.iban}</div>
+                  )}
+                  {payment.card && (
+                    <div className="ml-4 text-xs">
+                      Card Number: {payment.card}
+                    </div>
+                  )}
+                </div>
+
+                {/* #7 Name */}
+                <div>
+                  {payment.name && (
+                    <div><strong>#7 Name:</strong> {payment.name}</div>
+                  )}
+                  {payment.phone && (
+                    <div className="ml-4 text-xs">
+                      Phone Number: {payment.phone}
+                    </div>
+                  )}
+                </div>
+
+                {/* #8 Wallet */}
+                <div>
+                  {payment.wallet && (
+                    <div><strong>#8 Wallet:</strong> {payment.wallet}</div>
+                  )}
+                  {payment.paypalAddress && (
+                    <div className="ml-4 text-xs">
+                      Paypal: {payment.paypalAddress}
+                    </div>
+                  )}
+                </div>
+
+                {/* #9 Status */}
+                <div>
+                  <div><strong>#9 Status:</strong> {paymentStatus}</div>
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-2 ml-4">
@@ -489,12 +593,12 @@ const PaymentList = ({ onEdit, onDelete }) => {
                         <TableRow>
                           <TableHead className="w-12"></TableHead>
                           <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[80px]"
-                            onClick={() => handleSort('uniqueID')}
+                            className="cursor-pointer hover:bg-muted/50 min-w-[120px]"
+                            onClick={() => handleSort('time')}
                           >
                             <div className="flex items-center truncate">
-                              ID
-                              {getSortIcon('uniqueID')}
+                              #1 TimeStamp
+                              {getSortIcon('time')}
                             </div>
                           </TableHead>
                           <TableHead 
@@ -502,61 +606,25 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             onClick={() => handleSort('userid')}
                           >
                             <div className="flex items-center truncate">
-                              Discord ID
+                              #2 Discord ID
                               {getSortIcon('userid')}
                             </div>
                           </TableHead>
                           <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[120px] hidden lg:table-cell"
-                            onClick={() => handleSort('time')}
+                            onClick={() => handleSort('paymentTime')}
                           >
                             <div className="flex items-center truncate">
-                              Payment Time
-                              {getSortIcon('time')}
+                              #3 Payment Time
+                              {getSortIcon('paymentTime')}
                             </div>
                           </TableHead>
                           <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden xl:table-cell"
-                            onClick={() => handleSort('dueDate')}
-                          >
-                            <div className="flex items-center truncate">
-                              Due Date
-                              {getSortIcon('dueDate')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden xl:table-cell"
-                            onClick={() => handleSort('amount')}
-                          >
-                            <div className="flex items-center truncate">
-                              Amount
-                              {getSortIcon('amount')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden xl:table-cell"
-                            onClick={() => handleSort('ppu')}
-                          >
-                            <div className="flex items-center truncate">
-                              PPU
-                              {getSortIcon('ppu')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden xl:table-cell"
-                            onClick={() => handleSort('paymentMethod')}
-                          >
-                            <div className="flex items-center truncate">
-                              Payment Method
-                              {getSortIcon('paymentMethod')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
                             onClick={() => handleSort('total')}
                           >
                             <div className="flex items-center truncate">
-                              Total
+                              #4 Total
                               {getSortIcon('total')}
                             </div>
                           </TableHead>
@@ -565,8 +633,35 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             onClick={() => handleSort('paymentSource')}
                           >
                             <div className="flex items-center truncate">
-                              Payment Source
+                              #5 Payment Source
                               {getSortIcon('paymentSource')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden xl:table-cell"
+                            onClick={() => handleSort('iban')}
+                          >
+                            <div className="flex items-center truncate">
+                              #6 Sheba
+                              {getSortIcon('iban')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden xl:table-cell"
+                            onClick={() => handleSort('name')}
+                          >
+                            <div className="flex items-center truncate">
+                              #7 Name
+                              {getSortIcon('name')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden xl:table-cell"
+                            onClick={() => handleSort('wallet')}
+                          >
+                            <div className="flex items-center truncate">
+                              #8 Wallet
+                              {getSortIcon('wallet')}
                             </div>
                           </TableHead>
                           <TableHead 
@@ -574,7 +669,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             onClick={() => handleSort('status')}
                           >
                             <div className="flex items-center truncate">
-                              Status
+                              #9 Status
                               {getSortIcon('status')}
                             </div>
                           </TableHead>
@@ -605,25 +700,55 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                     )}
                                   </Button>
                                 </TableCell>
-                                <TableCell className={`font-medium ${rowColor || ''} truncate`} title={payment.uniqueID || payment.id}>
-                                  <span className="font-mono text-xs">
-                                    {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
-                                  </span>
-                                </TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.userid}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.time}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.dueDate || ''}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.amount}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.ppu || payment.price || ''}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.paymentMethod || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate`}>
+                                  <div>{payment.time}</div>
+                                  {payment.dueDate && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {payment.dueDate} {calculateTimeLeft(payment.dueDate) && `(${calculateTimeLeft(payment.dueDate)})`}
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>
+                                  <div>{payment.userid}</div>
+                                  <div className="text-xs font-mono text-muted-foreground">
+                                    {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
+                                  </div>
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentTime || payment.time}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>
+                                  {payment.amount && payment.ppu && (
+                                    <div className="text-xs text-muted-foreground">{payment.amount} × {payment.ppu}</div>
+                                  )}
                                   {(payment.total || payment.gheymat) ? (
-                                    <>
+                                    <div>
                                       {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
-                                    </>
+                                    </div>
                                   ) : ''}
                                 </TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentSource || ''}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>
+                                  {payment.paymentSource || ''}
+                                  {payment.paymentMethod && (
+                                    <div className="text-xs text-muted-foreground">{payment.paymentMethod}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>
+                                  {payment.iban || ''}
+                                  {payment.card && (
+                                    <div className="text-xs text-muted-foreground">{payment.card}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>
+                                  {payment.name || ''}
+                                  {payment.phone && (
+                                    <div className="text-xs text-muted-foreground">{payment.phone}</div>
+                                  )}
+                                </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>
+                                  {payment.wallet || ''}
+                                  {payment.paypalAddress && (
+                                    <div className="text-xs text-muted-foreground">{payment.paypalAddress}</div>
+                                  )}
+                                </TableCell>
                                 <TableCell>
                                   <Badge 
                                     variant={paymentStatus === 'Paid' ? 'success' : paymentStatus === 'Failed' ? 'destructive' : 'warning'} 
