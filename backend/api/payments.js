@@ -177,6 +177,7 @@ router.post('/', requireAuth, async (req, res) => {
       amount,
       ppu,
       dueDate,
+      paymentDuration: paymentDurationOption,
       paymentSource,
       paymentMethod,
       card,
@@ -279,7 +280,7 @@ router.post('/', requireAuth, async (req, res) => {
         amount: amountNum,
         price: ppuNum,
         gheymat: total,
-        paymentDuration: paymentDurationHours,
+        paymentDuration: paymentDurationOption || '',
         realm: '', // No longer used
         admin: adminName,
         note: note || '',

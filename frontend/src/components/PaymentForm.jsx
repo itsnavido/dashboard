@@ -279,6 +279,14 @@ const PaymentForm = ({ onSuccess }) => {
         }
       }
       
+      // Payment duration = due date option label (e.g. "Instant (1 hours)")
+      let paymentDurationLabel = '';
+      if (selectedDueDateOption) {
+        const [title, hoursStr] = selectedDueDateOption.split('|');
+        const hours = parseFloat(hoursStr);
+        paymentDurationLabel = !isNaN(hours) ? `${title} (${hours} hours)` : title;
+      }
+
       // Prepare payment data for submission
       // Note: IBAN uses sellerInfo.sheba, Paypal Address uses sellerInfo.paypalWallet
       const paymentData = {
@@ -287,6 +295,7 @@ const PaymentForm = ({ onSuccess }) => {
         ppu: formData.ppu.replace(/,/g, ''),
         total: formData.total.replace(/,/g, ''),
         dueDate: finalDueDate, // Due date calculated from Payment Info hours
+        paymentDuration: paymentDurationLabel, // Due date option for webhook
         paymentSource: formData.paymentSource,
         paymentMethod: formData.paymentMethod,
         card: sellerInfo.shomareKart,
