@@ -274,13 +274,13 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 {payment.dueDate && <div><strong>Due Date:</strong> {payment.dueDate}</div>}
                 {payment.amount && <div><strong>Amount:</strong> {payment.amount}</div>}
                 {payment.ppu && <div><strong>PPU:</strong> {payment.ppu}</div>}
+                {payment.paymentMethod && <div><strong>Payment Method:</strong> {payment.paymentMethod}</div>}
                 {(payment.total || payment.gheymat) && (
                   <div>
                     <strong>Total:</strong> {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
                   </div>
                 )}
                 {payment.paymentSource && <div><strong>Payment Source:</strong> {payment.paymentSource}</div>}
-                {payment.paymentMethod && <div><strong>Payment Method:</strong> {payment.paymentMethod}</div>}
               </div>
             </div>
             <div className="flex flex-col gap-2 ml-4">
@@ -543,6 +543,15 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             </div>
                           </TableHead>
                           <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden lg:table-cell"
+                            onClick={() => handleSort('paymentMethod')}
+                          >
+                            <div className="flex items-center truncate">
+                              Payment Method
+                              {getSortIcon('paymentMethod')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
                             onClick={() => handleSort('total')}
                           >
@@ -558,15 +567,6 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             <div className="flex items-center truncate">
                               Payment Source
                               {getSortIcon('paymentSource')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden lg:table-cell"
-                            onClick={() => handleSort('paymentMethod')}
-                          >
-                            <div className="flex items-center truncate">
-                              Payment Method
-                              {getSortIcon('paymentMethod')}
                             </div>
                           </TableHead>
                           <TableHead 
@@ -615,6 +615,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.dueDate || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.amount}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.ppu || payment.price || ''}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentMethod || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate`}>
                                   {(payment.total || payment.gheymat) ? (
                                     <>
@@ -623,7 +624,6 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                   ) : ''}
                                 </TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentSource || ''}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentMethod || ''}</TableCell>
                                 <TableCell>
                                   <Badge 
                                     variant={paymentStatus === 'Paid' ? 'success' : paymentStatus === 'Failed' ? 'destructive' : 'warning'} 
