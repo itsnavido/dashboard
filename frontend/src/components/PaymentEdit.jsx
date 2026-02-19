@@ -24,7 +24,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     name: '',
     wallet: '',
     note: '',
-    noteAdmin: ''
   });
 
   const [paymentInfoOptions, setPaymentInfoOptions] = useState({
@@ -68,7 +67,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
         name: payment.name || '',
         wallet: payment.wallet || '',
         note: payment.note || '',
-        noteAdmin: payment.noteAdmin || ''
       });
     }
   }, [payment]);
@@ -290,16 +288,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="noteAdmin">Note Admin</Label>
-              <Input
-                type="text"
-                id="noteAdmin"
-                name="noteAdmin"
-                value={formData.noteAdmin}
-                onChange={handleChange}
-              />
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="note">Note</Label>

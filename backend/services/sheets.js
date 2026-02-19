@@ -237,15 +237,15 @@ async function getPaymentRowsRaw() {
     // Read data starting from row 4 (skip header rows 1-3)
     const response = await client.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A4:Q`, // A4:Q means start from row 4, columns A-Q (17 columns, rows 1-3 are headers)
+      range: `${sheetName}!A4:P`, // A4:P means start from row 4, columns A-P (16 columns, rows 1-3 are headers)
     });
 
     const rows = response.data.values || [];
     
     // Convert to format compatible with google-spreadsheet row objects
     return rows.map((rowData, index) => {
-      // Pad row to 17 columns (A-Q for Payment v2)
-      const paddedRow = new Array(17).fill('').map((_, i) => rowData[i] || '');
+      // Pad row to 16 columns (A-P for Payment v2)
+      const paddedRow = new Array(16).fill('').map((_, i) => rowData[i] || '');
       
       return {
         _rawData: paddedRow,
@@ -298,7 +298,7 @@ async function addPaymentRowRaw(rowData) {
     // Append row using raw API (will append after existing data, after row 3)
     await client.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:Q`, // Append to columns A-Q (17 columns for Payment v2)
+      range: `${sheetName}!A:P`, // Append to columns A-P (16 columns for Payment v2)
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {

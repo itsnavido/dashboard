@@ -20,7 +20,6 @@ const PaymentForm = ({ onSuccess }) => {
     paymentSource: '',
     paymentMethod: '',
     note: '',
-    noteAdmin: '',
     dueDate: ''
   });
 
@@ -295,9 +294,7 @@ const PaymentForm = ({ onSuccess }) => {
         name: sellerInfo.name,
         wallet: sellerInfo.wallet || '',
         paypalAddress: sellerInfo.paypalWallet || '', // Paypal Address is same as Paypal Wallet
-        note: formData.note,
-        noteAdmin: formData.noteAdmin
-        // Status field is not written to (left empty)
+        note: formData.note
       };
 
       const response = await api.post('/payments', paymentData);
@@ -327,7 +324,6 @@ const PaymentForm = ({ onSuccess }) => {
           paymentSource: '',
           paymentMethod: '',
           note: '',
-          noteAdmin: '',
           dueDate: ''
         });
         // Reset due date option to first option if available
@@ -549,16 +545,6 @@ const PaymentForm = ({ onSuccess }) => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="noteAdmin">Note Admin</Label>
-                  <Input
-                    id="noteAdmin"
-                    name="noteAdmin"
-                    value={formData.noteAdmin}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                  />
-                </div>
               </>
             )}
 

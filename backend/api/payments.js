@@ -49,8 +49,7 @@ router.get('/', requireAuth, async (req, res) => {
         paypalAddress: getValue(cols.paypalAddress),
         uniqueID: getValue(cols.uniqueID),
         note: getValue(cols.note),
-        status: getValue(cols.status), // Status column (R column)
-        noteAdmin: getValue(cols.noteAdmin),
+        paymentTime: getValue(cols.paymentTime),
         // Legacy fields for backward compatibility
         price: getValue(cols.ppu), // Alias for ppu
         gheymat: getValue(cols.total), // Alias for total
@@ -150,8 +149,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
-      status: getValue(cols.status), // Status column (R column)
-      noteAdmin: getValue(cols.noteAdmin),
+      paymentTime: getValue(cols.paymentTime),
       // Legacy fields for backward compatibility
       price: getValue(cols.ppu),
       gheymat: getValue(cols.total),
@@ -186,8 +184,7 @@ router.post('/', requireAuth, async (req, res) => {
       name,
       wallet,
       paypalAddress,
-      note,
-      noteAdmin
+      note
     } = req.body;
     
     // Validate required fields
@@ -248,6 +245,7 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.time] = time;
     paymentData[cols.dueDate] = dueDateFormatted;
     paymentData[cols.userid] = discordId;
+    paymentData[cols.paymentTime] = time; // Payment Time is same as Timestamp
     paymentData[cols.amount] = amount || '';
     paymentData[cols.ppu] = ppu || '';
     paymentData[cols.total] = total.toString();
@@ -260,14 +258,12 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.paypalAddress] = paypalAddress || ''; // Paypal Address comes from sellerInfo.paypalWallet (sent as paypalAddress)
     paymentData[cols.uniqueID] = uniqueID;
     paymentData[cols.note] = note || '';
-    paymentData[cols.status] = ''; // Status field is not written to (left empty)
-    paymentData[cols.noteAdmin] = noteAdmin || '';
     
-    // Add to payment sheet - create array in correct column order (17 columns: 0-16)
-    const rowData = new Array(17).fill('');
+    // Add to payment sheet - create array in correct column order (16 columns: 0-15)
+    const rowData = new Array(16).fill('');
     Object.keys(paymentData).forEach(colIndex => {
       const idx = parseInt(colIndex);
-      if (!isNaN(idx) && idx < 17) {
+      if (!isNaN(idx) && idx < 16) {
         rowData[idx] = paymentData[colIndex];
       }
     });
@@ -466,12 +462,6 @@ router.put('/:id', requireAuth, async (req, res) => {
       }
     }
     // Status field is not updated (left empty)
-    if (req.body.noteAdmin !== undefined) {
-      updateData[cols.noteAdmin] = req.body.noteAdmin;
-      if (req.body.noteAdmin !== currentPayment.noteAdmin) {
-        changes.noteAdmin = { old: currentPayment.noteAdmin, new: req.body.noteAdmin };
-      }
-    }
     // Legacy field support
     if (req.body.price !== undefined && req.body.ppu === undefined) {
       updateData[cols.ppu] = req.body.price;
