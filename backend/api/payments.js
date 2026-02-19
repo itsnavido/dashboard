@@ -650,7 +650,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
-      noteAdmin: getValue(cols.noteAdmin),
       action: 'delete',
       deletedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
       // Legacy fields for webhook compatibility
