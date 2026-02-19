@@ -14,7 +14,6 @@ import { toast } from 'react-hot-toast';
 const PaymentForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     discordId: '',
-    paymentDuration: 'lahzei',
     amount: '',
     ppu: '',
     total: '',
@@ -52,16 +51,6 @@ const PaymentForm = ({ onSuccess }) => {
   const [userFound, setUserFound] = useState(false);
   const [loadingSeller, setLoadingSeller] = useState(false);
   const [loadingPaymentInfo, setLoadingPaymentInfo] = useState(false);
-
-  const paymentDurationOptions = [
-    { value: 'lahzei', label: 'lahzei' },
-    { value: '12-24 hours', label: '12-24' },
-    { value: '24-48 hours', label: '24-48' },
-    { value: '2-3 days', label: '2-3' },
-    { value: '3-5 days', label: '3-5' },
-    { value: '5-10 days', label: '5-10' },
-    { value: 'usdt days', label: 'USDT' }
-  ];
 
   const realmOptions = [
     { value: '', label: 'Select a Realm' },
@@ -237,7 +226,6 @@ const PaymentForm = ({ onSuccess }) => {
       // Prepare payment data for submission
       const paymentData = {
         discordId: formData.discordId.replace(/\s/g, ''),
-        paymentDuration: formData.paymentDuration,
         amount: formData.amount.replace(/,/g, ''),
         ppu: formData.ppu.replace(/,/g, ''),
         total: formData.total.replace(/,/g, ''),
@@ -256,8 +244,6 @@ const PaymentForm = ({ onSuccess }) => {
 
       const response = await api.post('/payments', paymentData);
       
-      const paymentDurationLabel = paymentDurationOptions.find(opt => opt.value === formData.paymentDuration)?.label || formData.paymentDuration;
-      
       const detailedMessage = `پرداخت با موفقیت ثبت شد!\n\n` +
         `شناسه: ${response.data.uniqueID}\n` +
         `Discord ID: ${formData.discordId.replace(/\s/g, '')}\n` +
@@ -267,7 +253,6 @@ const PaymentForm = ({ onSuccess }) => {
         (formData.paymentSource ? `Payment Source: ${formData.paymentSource}\n` : '') +
         (formData.paymentMethod ? `Payment Method: ${formData.paymentMethod}\n` : '') +
         (formData.currency ? `Currency: ${formData.currency}\n` : '') +
-        (formData.paymentDuration ? `مدت زمان: ${paymentDurationLabel}\n` : '') +
         (formData.note ? `یادداشت: ${formData.note}\n` : '') +
         (sellerInfo.name ? `نام: ${sellerInfo.name}\n` : '') +
         (sellerInfo.shomareKart ? `شماره کارت: ${sellerInfo.shomareKart}\n` : '') +
@@ -278,7 +263,6 @@ const PaymentForm = ({ onSuccess }) => {
       
       setFormData({
         discordId: '',
-        paymentDuration: 'lahzei',
         amount: '',
         ppu: '',
         total: '',
@@ -384,23 +368,6 @@ const PaymentForm = ({ onSuccess }) => {
             {showPaymentFields && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="paymentDuration">Payment Duration</Label>
-                  <Select
-                    value={formData.paymentDuration}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentDuration: value }))}
-                  >
-                    <SelectTrigger id="paymentDuration">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentDurationOptions.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="amount">Amount</Label>
                   <Input
                     id="amount"
@@ -491,28 +458,6 @@ const PaymentForm = ({ onSuccess }) => {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="iban">Iban</Label>
-                  <Input
-                    id="iban"
-                    name="iban"
-                    value={formData.iban}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="paypalAddress">Paypal Address</Label>
-                  <Input
-                    id="paypalAddress"
-                    name="paypalAddress"
-                    value={formData.paypalAddress}
-                    onChange={handleInputChange}
-                    autoComplete="off"
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -669,6 +614,28 @@ const PaymentForm = ({ onSuccess }) => {
               onChange={handleSellerInfoChange}
               autoComplete="off"
               disabled={!showEdit && !showAdd}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="iban">Iban</Label>
+            <Input
+              id="iban"
+              name="iban"
+              value={formData.iban}
+              onChange={handleInputChange}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paypalAddress">Paypal Address</Label>
+            <Input
+              id="paypalAddress"
+              name="paypalAddress"
+              value={formData.paypalAddress}
+              onChange={handleInputChange}
+              autoComplete="off"
             />
           </div>
         </CardContent>

@@ -202,12 +202,8 @@ const PaymentList = ({ onEdit, onDelete }) => {
     const isNegative = timeLeftStr.toString().trim().startsWith('-') || 
                      (timeLeftStr && !isNaN(parseFloat(timeLeftStr)) && parseFloat(timeLeftStr) < 0);
     const isPaid = isPaymentPaid(payment.columnQ);
-    const isLahzei = payment.paymentDuration && 
-                    payment.paymentDuration.toString().toLowerCase().includes('lahzei');
-    
     if (isNegative) return 'text-purple-400';
     if (isPaid) return 'text-green-400';
-    if (isLahzei) return 'text-blue-400';
     return '';
   };
 
@@ -256,7 +252,6 @@ const PaymentList = ({ onEdit, onDelete }) => {
                 {payment.paymentSource && <div><strong>Payment Source:</strong> {payment.paymentSource}</div>}
                 {payment.paymentMethod && <div><strong>Payment Method:</strong> {payment.paymentMethod}</div>}
                 {payment.currency && <div><strong>Currency:</strong> {payment.currency}</div>}
-                {payment.paymentDuration && <div><strong>Duration:</strong> {payment.paymentDuration}</div>}
                 {payment.status && <div><strong>Status:</strong> {payment.status}</div>}
               </div>
             </div>
@@ -547,15 +542,6 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             </div>
                           </TableHead>
                           <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[90px] hidden lg:table-cell"
-                            onClick={() => handleSort('paymentDuration')}
-                          >
-                            <div className="flex items-center truncate">
-                              Duration
-                              {getSortIcon('paymentDuration')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
                             onClick={() => handleSort('status')}
                           >
@@ -603,13 +589,12 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                   {(payment.total || payment.gheymat) ? (
                                     <>
                                       {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
-                                      {payment.currency ? ` ${payment.currency}` : (payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial')}
+                                      {payment.currency ? ` ${payment.currency}` : ' Rial'}
                                     </>
                                   ) : ''}
                                 </TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentSource || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentMethod || ''}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentDuration}</TableCell>
                                 <TableCell>
                                   <Badge variant={payment.status ? 'default' : (isPaid ? 'success' : 'warning')} className="text-xs">
                                     {payment.status || (isPaid ? (

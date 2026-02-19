@@ -147,9 +147,6 @@ function UserDashboard() {
                         <div className="font-semibold text-lg">
                           {formatNumber(parseFloat(payment.gheymat || 0))} Rial
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {payment.paymentDuration}
-                        </div>
                       </div>
                     </div>
                   ))}

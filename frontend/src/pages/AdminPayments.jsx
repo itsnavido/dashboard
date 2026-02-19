@@ -241,7 +241,6 @@ function AdminPayments() {
                               ? formatNumber(parseFloat(payment.gheymat))
                               : '-'}
                           </TableCell>
-                          <TableCell>{payment.paymentDuration}</TableCell>
                           <TableCell>
                             <Badge
                               variant={isPaymentPaid(payment.columnQ) ? 'success' : 'warning'}

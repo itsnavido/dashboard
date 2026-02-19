@@ -21,7 +21,6 @@ async function getAllPaymentsData() {
       id: index + 4,
       time: getValue(cols.time),
       userid: getValue(cols.userid),
-      paymentDuration: getValue(cols.paymentDuration),
       realm: getValue(cols.realm),
       amount: getValue(cols.amount),
       price: getValue(cols.price),

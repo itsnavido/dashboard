@@ -37,7 +37,6 @@ router.get('/', requireAuth, async (req, res) => {
         time: getValue(cols.time),
         dueDate: getValue(cols.dueDate),
         userid: getValue(cols.userid),
-        paymentDuration: getValue(cols.paymentDuration),
         amount: getValue(cols.amount),
         ppu: getValue(cols.ppu),
         total: getValue(cols.total),
@@ -140,7 +139,6 @@ router.get('/:id', requireAuth, async (req, res) => {
       time: getValue(cols.time),
       dueDate: getValue(cols.dueDate),
       userid: getValue(cols.userid),
-      paymentDuration: getValue(cols.paymentDuration),
       amount: getValue(cols.amount),
       ppu: getValue(cols.ppu),
       total: getValue(cols.total),
@@ -180,7 +178,6 @@ router.post('/', requireAuth, async (req, res) => {
   try {
     const {
       discordId,
-      paymentDuration,
       amount,
       ppu,
       paymentSource,
@@ -226,7 +223,6 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.time] = time;
     paymentData[cols.dueDate] = dueDateFormatted;
     paymentData[cols.userid] = discordId;
-    paymentData[cols.paymentDuration] = paymentDuration || '';
     paymentData[cols.amount] = amount || '';
     paymentData[cols.ppu] = ppu || '';
     paymentData[cols.total] = total.toString();
@@ -243,11 +239,11 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.status] = status || '';
     paymentData[cols.noteAdmin] = noteAdmin || '';
     
-    // Add to payment sheet - create array in correct column order (19 columns: 0-18)
-    const rowData = new Array(19).fill('');
+    // Add to payment sheet - create array in correct column order (18 columns: 0-17)
+    const rowData = new Array(18).fill('');
     Object.keys(paymentData).forEach(colIndex => {
       const idx = parseInt(colIndex);
-      if (!isNaN(idx) && idx < 19) {
+      if (!isNaN(idx) && idx < 18) {
         rowData[idx] = paymentData[colIndex];
       }
     });
@@ -258,13 +254,11 @@ router.post('/', requireAuth, async (req, res) => {
     // Send Discord webhook (with legacy format for compatibility)
     try {
       const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
-      const paymentDurationMessage = config.paymentDurationMessages[paymentDuration] || paymentDuration || '';
       await discord.sendDiscordMessage({
         discordId,
         amount: amountNum,
         price: ppuNum,
         gheymat: total,
-        paymentDuration: paymentDurationMessage,
         realm: '', // No longer used
         admin: adminName,
         note: note || '',
@@ -283,7 +277,6 @@ router.post('/', requireAuth, async (req, res) => {
     // Log payment creation
     const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
     await sheets.addPaymentLog(uniqueID, 'create', adminName, {
-      paymentDuration,
       amount,
       ppu,
       total,
@@ -331,7 +324,6 @@ router.put('/:id', requireAuth, async (req, res) => {
       time: getValue(cols.time),
       dueDate: getValue(cols.dueDate),
       userid: getValue(cols.userid),
-      paymentDuration: getValue(cols.paymentDuration),
       amount: getValue(cols.amount),
       ppu: getValue(cols.ppu),
       total: getValue(cols.total),
@@ -374,12 +366,6 @@ router.put('/:id', requireAuth, async (req, res) => {
       updateData[cols.userid] = req.body.userid;
       if (req.body.userid !== currentPayment.userid) {
         changes.userid = { old: currentPayment.userid, new: req.body.userid };
-      }
-    }
-    if (req.body.paymentDuration !== undefined) {
-      updateData[cols.paymentDuration] = req.body.paymentDuration;
-      if (req.body.paymentDuration !== currentPayment.paymentDuration) {
-        changes.paymentDuration = { old: currentPayment.paymentDuration, new: req.body.paymentDuration };
       }
     }
     if (req.body.amount !== undefined) {
@@ -507,7 +493,6 @@ router.put('/:id', requireAuth, async (req, res) => {
       oldPpu: currentPayment.ppu,
       oldAmount: currentPayment.amount,
       oldTotal: currentPayment.total,
-      oldPaymentDuration: currentPayment.paymentDuration,
       currency: currentPayment.currency || ''
     };
     
@@ -654,7 +639,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
       time: getValue(cols.time),
       dueDate: getValue(cols.dueDate),
       userid: getValue(cols.userid),
-      paymentDuration: getValue(cols.paymentDuration),
       amount: getValue(cols.amount),
       ppu: getValue(cols.ppu),
       total: getValue(cols.total),

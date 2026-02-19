@@ -15,7 +15,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     time: '',
     dueDate: '',
     userid: '',
-    paymentDuration: '',
     amount: '',
     ppu: '',
     total: '',
@@ -64,7 +63,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
         time: payment.time || '',
         dueDate: payment.dueDate || '',
         userid: payment.userid || '',
-        paymentDuration: payment.paymentDuration || '',
         amount: payment.amount || '',
         ppu: formattedPpu,
         total: formattedTotal,
@@ -215,17 +213,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
                 id="userid"
                 name="userid"
                 value={formData.userid}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paymentDuration">Payment Duration</Label>
-              <Input
-                type="text"
-                id="paymentDuration"
-                name="paymentDuration"
-                value={formData.paymentDuration}
                 onChange={handleChange}
               />
             </div>
