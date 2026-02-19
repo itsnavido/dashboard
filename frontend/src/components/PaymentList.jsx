@@ -498,21 +498,21 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             </div>
                           </TableHead>
                           <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[120px]"
-                            onClick={() => handleSort('time')}
-                          >
-                            <div className="flex items-center truncate">
-                              Time
-                              {getSortIcon('time')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden lg:table-cell"
                             onClick={() => handleSort('userid')}
                           >
                             <div className="flex items-center truncate">
                               Discord ID
                               {getSortIcon('userid')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[120px] hidden lg:table-cell"
+                            onClick={() => handleSort('time')}
+                          >
+                            <div className="flex items-center truncate">
+                              Payment Time
+                              {getSortIcon('time')}
                             </div>
                           </TableHead>
                           <TableHead 
@@ -610,8 +610,8 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                     {payment.uniqueID ? `${payment.uniqueID.substring(0, 8)}...${payment.uniqueID.substring(payment.uniqueID.length - 8)}` : payment.id}
                                   </span>
                                 </TableCell>
-                                <TableCell className={`${rowColor || ''} truncate`}>{payment.time}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.userid}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.time}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.dueDate || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.amount}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.ppu || payment.price || ''}</TableCell>
