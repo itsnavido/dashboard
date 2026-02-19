@@ -243,19 +243,21 @@ const PaymentList = ({ onEdit, onDelete }) => {
               </div>
               <div className={`text-sm space-y-1 ${rowColor || 'text-muted-foreground'}`}>
                 <div><strong>Discord:</strong> {payment.userid}</div>
-                <div><strong>Realm:</strong> {payment.realm}</div>
                 <div><strong>Time:</strong> {payment.time}</div>
+                {payment.dueDate && <div><strong>Due Date:</strong> {payment.dueDate}</div>}
                 {payment.amount && <div><strong>Amount:</strong> {payment.amount}</div>}
-                {payment.price && <div><strong>Price:</strong> {payment.price}</div>}
-                {payment.gheymat && (
+                {payment.ppu && <div><strong>PPU:</strong> {payment.ppu}</div>}
+                {(payment.total || payment.gheymat) && (
                   <div>
-                    <strong>Total:</strong> {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
-                    {payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial'}
+                    <strong>Total:</strong> {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
+                    {payment.currency && ` ${payment.currency}`}
                   </div>
                 )}
+                {payment.paymentSource && <div><strong>Payment Source:</strong> {payment.paymentSource}</div>}
+                {payment.paymentMethod && <div><strong>Payment Method:</strong> {payment.paymentMethod}</div>}
+                {payment.currency && <div><strong>Currency:</strong> {payment.currency}</div>}
                 {payment.paymentDuration && <div><strong>Duration:</strong> {payment.paymentDuration}</div>}
-                {payment.timeLeftToPay && <div><strong>Time Left:</strong> {formatTimeLeft(payment.timeLeftToPay)}</div>}
-                {payment.admin && <div><strong>Admin:</strong> {payment.admin}</div>}
+                {payment.status && <div><strong>Status:</strong> {payment.status}</div>}
               </div>
             </div>
             <div className="flex flex-col gap-2 ml-4">
@@ -491,12 +493,12 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             </div>
                           </TableHead>
                           <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[80px]"
-                            onClick={() => handleSort('realm')}
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden xl:table-cell"
+                            onClick={() => handleSort('dueDate')}
                           >
                             <div className="flex items-center truncate">
-                              Realm
-                              {getSortIcon('realm')}
+                              Due Date
+                              {getSortIcon('dueDate')}
                             </div>
                           </TableHead>
                           <TableHead 
@@ -510,20 +512,38 @@ const PaymentList = ({ onEdit, onDelete }) => {
                           </TableHead>
                           <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden xl:table-cell"
-                            onClick={() => handleSort('price')}
+                            onClick={() => handleSort('ppu')}
                           >
                             <div className="flex items-center truncate">
-                              Price
-                              {getSortIcon('price')}
+                              PPU
+                              {getSortIcon('ppu')}
                             </div>
                           </TableHead>
                           <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
-                            onClick={() => handleSort('gheymat')}
+                            onClick={() => handleSort('total')}
                           >
                             <div className="flex items-center truncate">
                               Total
-                              {getSortIcon('gheymat')}
+                              {getSortIcon('total')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden lg:table-cell"
+                            onClick={() => handleSort('paymentSource')}
+                          >
+                            <div className="flex items-center truncate">
+                              Payment Source
+                              {getSortIcon('paymentSource')}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer hover:bg-muted/50 min-w-[100px] hidden lg:table-cell"
+                            onClick={() => handleSort('paymentMethod')}
+                          >
+                            <div className="flex items-center truncate">
+                              Payment Method
+                              {getSortIcon('paymentMethod')}
                             </div>
                           </TableHead>
                           <TableHead 
@@ -536,30 +556,12 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             </div>
                           </TableHead>
                           <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden xl:table-cell"
-                            onClick={() => handleSort('timeLeftToPay')}
-                          >
-                            <div className="flex items-center truncate">
-                              Time Left
-                              {getSortIcon('timeLeftToPay')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer hover:bg-muted/50 min-w-[80px] hidden lg:table-cell"
-                            onClick={() => handleSort('admin')}
-                          >
-                            <div className="flex items-center truncate">
-                              Admin
-                              {getSortIcon('admin')}
-                            </div>
-                          </TableHead>
-                          <TableHead 
                             className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
-                            onClick={() => handleSort('columnQ')}
+                            onClick={() => handleSort('status')}
                           >
                             <div className="flex items-center truncate">
                               Status
-                              {getSortIcon('columnQ')}
+                              {getSortIcon('status')}
                             </div>
                           </TableHead>
                           <TableHead className="text-right min-w-[140px]">Actions</TableHead>
@@ -594,25 +596,23 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                 </TableCell>
                                 <TableCell className={`${rowColor || ''} truncate`}>{payment.time}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.userid}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate`}>{payment.realm}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.dueDate || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.amount}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.price}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>{payment.ppu || payment.price || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate`}>
-                                  {payment.gheymat ? (
+                                  {(payment.total || payment.gheymat) ? (
                                     <>
-                                      {formatNumber(parseFloat(payment.gheymat.toString().replace(/,/g, '')) || 0)}
-                                      {payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial'}
+                                      {formatNumber(parseFloat((payment.total || payment.gheymat || '0').toString().replace(/,/g, '')) || 0)}
+                                      {payment.currency ? ` ${payment.currency}` : (payment.paymentDuration && payment.paymentDuration.toString().toLowerCase().includes('usdt') ? ' $' : ' Rial')}
                                     </>
                                   ) : ''}
                                 </TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentSource || ''}</TableCell>
+                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentMethod || ''}</TableCell>
                                 <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.paymentDuration}</TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden xl:table-cell`}>
-                                  {formatTimeLeft(payment.timeLeftToPay)}
-                                </TableCell>
-                                <TableCell className={`${rowColor || ''} truncate hidden lg:table-cell`}>{payment.admin}</TableCell>
                                 <TableCell>
-                                  <Badge variant={isPaid ? 'success' : 'warning'} className="text-xs">
-                                    {isPaid ? (
+                                  <Badge variant={payment.status ? 'default' : (isPaid ? 'success' : 'warning')} className="text-xs">
+                                    {payment.status || (isPaid ? (
                                       <>
                                         <CheckCircle2 className="h-3 w-3 mr-1" />
                                         Paid
@@ -622,7 +622,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                                         <XCircle className="h-3 w-3 mr-1" />
                                         Unpaid
                                       </>
-                                    )}
+                                    ))}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">

@@ -237,15 +237,15 @@ async function getPaymentRowsRaw() {
     // Read data starting from row 4 (skip header rows 1-3)
     const response = await client.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A4:V`, // A4:V means start from row 4, columns A-V (rows 1-3 are headers)
+      range: `${sheetName}!A4:S`, // A4:S means start from row 4, columns A-S (19 columns, rows 1-3 are headers)
     });
 
     const rows = response.data.values || [];
     
     // Convert to format compatible with google-spreadsheet row objects
     return rows.map((rowData, index) => {
-      // Pad row to 22 columns (A-V)
-      const paddedRow = new Array(22).fill('').map((_, i) => rowData[i] || '');
+      // Pad row to 19 columns (A-S for Payment v2)
+      const paddedRow = new Array(19).fill('').map((_, i) => rowData[i] || '');
       
       return {
         _rawData: paddedRow,
@@ -298,7 +298,7 @@ async function addPaymentRowRaw(rowData) {
     // Append row using raw API (will append after existing data, after row 3)
     await client.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:Q`, // Append to columns A-Q
+      range: `${sheetName}!A:S`, // Append to columns A-S (19 columns for Payment v2)
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
@@ -724,6 +724,83 @@ async function getPaymentLogs(paymentUniqueID) {
   }
 }
 
+/**
+ * Get Payment Info sheet options and due date info
+ * Returns: paymentSources (col A), paymentMethods (col B), currencies (col C), dueDateInfo (col D:E)
+ */
+async function getPaymentInfoOptions() {
+  try {
+    const sheet = await getSheet(config.sheetNames.paymentInfo);
+    const rows = await sheet.getRows();
+    
+    // Extract unique values from columns A, B, C
+    const paymentSources = [];
+    const paymentMethods = [];
+    const currencies = [];
+    let dueDateTitle = '';
+    let dueDateHours = 0;
+    
+    rows.forEach((row) => {
+      // Access raw data directly (columns are 0-indexed)
+      const rawData = row._rawData || [];
+      
+      // Column A (index 0): Payment Source
+      const paymentSource = rawData[0] || '';
+      if (paymentSource && paymentSource.trim() && !paymentSources.includes(paymentSource.trim())) {
+        paymentSources.push(paymentSource.trim());
+      }
+      
+      // Column B (index 1): Payment Method
+      const paymentMethod = rawData[1] || '';
+      if (paymentMethod && paymentMethod.trim() && !paymentMethods.includes(paymentMethod.trim())) {
+        paymentMethods.push(paymentMethod.trim());
+      }
+      
+      // Column C (index 2): Currency
+      const currency = rawData[2] || '';
+      if (currency && currency.trim() && !currencies.includes(currency.trim())) {
+        currencies.push(currency.trim());
+      }
+      
+      // Column D (index 3): Due Date title (take first non-empty value)
+      if (!dueDateTitle && rawData[3] && rawData[3].trim()) {
+        dueDateTitle = rawData[3].trim();
+      }
+      
+      // Column E (index 4): Hours till due date (take first non-empty numeric value)
+      if (dueDateHours === 0 && rawData[4]) {
+        const hoursValue = rawData[4];
+        const parsedHours = parseFloat(hoursValue);
+        if (!isNaN(parsedHours) && parsedHours > 0) {
+          dueDateHours = parsedHours;
+        }
+      }
+    });
+    
+    return {
+      paymentSources: paymentSources.filter(Boolean),
+      paymentMethods: paymentMethods.filter(Boolean),
+      currencies: currencies.filter(Boolean),
+      dueDateInfo: {
+        title: dueDateTitle || 'Due Date',
+        hours: dueDateHours || 24 // Default to 24 hours if not found
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching Payment Info options:', error);
+    // Return defaults if sheet doesn't exist or has errors
+    return {
+      paymentSources: [],
+      paymentMethods: [],
+      currencies: [],
+      dueDateInfo: {
+        title: 'Due Date',
+        hours: 24
+      }
+    };
+  }
+}
+
 module.exports = {
   initSheets,
   initSheetsClient,
@@ -737,6 +814,7 @@ module.exports = {
   getCellValue,
   setCellValue,
   addPaymentLog,
-  getPaymentLogs
+  getPaymentLogs,
+  getPaymentInfoOptions
 };
 

@@ -38,34 +38,48 @@ module.exports = {
 
   // Sheet names
   sheetNames: {
-    payment: "Payment",
+    payment: "Payment v2",
     sellerInfo: "Seller Info",
     info: "Info",
     users: "Users",
-    paymentLogs: "Payment Logs"
+    paymentLogs: "Payment Logs",
+    paymentInfo: "Payment Info"
   },
 
-  // Column mappings for Payment sheet (0-indexed)
-  // Headers: Timestamp, Discord ID, Payment Time, Amount, Price, #VALUE!, Gheymat, Realm, Shomare Kart, Shomare Sheba, Name, Shomare tamas, Note, ID, Admin, Ki Pay Kard, Column Q, ..., Time Left to Pay (V)
+  // Column mappings for Payment v2 sheet (0-indexed)
+  // Headers: Timestamp, Due Date, Discord ID, Payment Time, Amount, PPU, Total, Payment Source, Payment Method, Currency, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note, Status, Note admin
   paymentSheetColumns: {
     time: 0,              // Timestamp
-    userid: 1,            // Discord ID
-    paymentDuration: 2,   // Payment Time
-    amount: 3,            // Amount
-    price: 4,             // Price
-    // Column 5 is #VALUE! - ignore it
-    gheymat: 6,           // Gheymat
-    realm: 7,             // Realm
-    card: 8,              // Shomare Kart
-    sheba: 9,             // Shomare Sheba
-    name: 10,             // Name
-    phone: 11,            // Shomare tamas
-    note: 12,             // Note
-    uniqueID: 13,         // ID
-    admin: 14,            // Admin
-    processed: 15,        // Ki Pay Kard (processed flag)
-    columnQ: 16,         // Column Q (boolean flag)
-    timeLeftToPay: 21     // Time Left to Pay (Column V)
+    dueDate: 1,           // Due Date
+    userid: 2,            // Discord ID
+    paymentDuration: 3,  // Payment Time
+    amount: 4,            // Amount
+    ppu: 5,               // PPU (Price Per Unit)
+    total: 6,             // Total (amount * PPU)
+    paymentSource: 7,     // Payment Source
+    paymentMethod: 8,     // Payment Method
+    currency: 9,           // Currency
+    card: 10,             // Card Number
+    iban: 11,             // Iban
+    name: 12,             // Name
+    wallet: 13,           // Wallet
+    paypalAddress: 14,    // Paypal Address
+    uniqueID: 15,         // UUID
+    note: 16,             // Note
+    status: 17,           // Status
+    noteAdmin: 18         // Note admin
+  },
+
+  // Column mappings for Seller Info sheet (0-indexed)
+  // Headers: Discord ID, Shomare Kart, ShomareSheba, Name, Shomare Tamas, Wallet, Paypal Wallet
+  sellerInfoColumns: {
+    discordId: 0,         // Discord ID
+    card: 1,              // Shomare Kart
+    sheba: 2,             // ShomareSheba
+    name: 3,              // Name
+    phone: 4,             // Shomare Tamas
+    wallet: 5,            // Wallet
+    paypalWallet: 6       // Paypal Wallet
   },
 
   // Cache TTL settings (in seconds)

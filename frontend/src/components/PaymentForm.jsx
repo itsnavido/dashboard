@@ -14,14 +14,18 @@ import { toast } from 'react-hot-toast';
 const PaymentForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     discordId: '',
-    paymentType: '',
     paymentDuration: 'lahzei',
-    realm: '',
-    customRealm: '',
     amount: '',
-    unitPrice: '',
-    totalAmount: '',
-    note: ''
+    ppu: '',
+    total: '',
+    paymentSource: '',
+    paymentMethod: '',
+    currency: '',
+    iban: '',
+    paypalAddress: '',
+    note: '',
+    noteAdmin: '',
+    status: ''
   });
 
   const [sellerInfo, setSellerInfo] = useState({
@@ -29,7 +33,15 @@ const PaymentForm = ({ onSuccess }) => {
     shomareKart: '',
     name: '',
     shomareTamas: '',
-    rank: ''
+    wallet: '',
+    paypalWallet: ''
+  });
+
+  const [paymentInfoOptions, setPaymentInfoOptions] = useState({
+    paymentSources: [],
+    paymentMethods: [],
+    currencies: [],
+    dueDateInfo: { title: 'Due Date', hours: 24 }
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +51,7 @@ const PaymentForm = ({ onSuccess }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [userFound, setUserFound] = useState(false);
   const [loadingSeller, setLoadingSeller] = useState(false);
+  const [loadingPaymentInfo, setLoadingPaymentInfo] = useState(false);
 
   const paymentDurationOptions = [
     { value: 'lahzei', label: 'lahzei' },
@@ -58,37 +71,48 @@ const PaymentForm = ({ onSuccess }) => {
     { value: 'Custom', label: 'Custom' }
   ];
 
-  const isUSDT = formData.paymentDuration === 'usdt days';
-
-  // Calculate total amount for Gold payments
+  // Fetch Payment Info options on component mount
   useEffect(() => {
-    if (formData.paymentType === 'Gold' && formData.amount && formData.unitPrice) {
+    const fetchPaymentInfo = async () => {
+      setLoadingPaymentInfo(true);
+      try {
+        const response = await api.get('/payment-info');
+        setPaymentInfoOptions(response.data);
+      } catch (error) {
+        console.error('Error fetching Payment Info options:', error);
+        toast.error('Failed to load payment options');
+      } finally {
+        setLoadingPaymentInfo(false);
+      }
+    };
+    fetchPaymentInfo();
+  }, []);
+
+  // Calculate total: always amount * PPU
+  useEffect(() => {
+    if (formData.amount && formData.ppu) {
       const amount = parseFloat(formData.amount.replace(/,/g, '')) || 0;
-      const unitPrice = parseFloat(formData.unitPrice.replace(/,/g, '')) || 0;
+      const ppu = parseFloat(formData.ppu.replace(/,/g, '')) || 0;
       
-      if (amount > 0 && unitPrice > 0) {
-        let total = amount * unitPrice;
-        if (!isUSDT) {
-          total = total * 10;
-        }
-        
+      if (amount > 0 && ppu > 0) {
+        const total = amount * ppu;
         setFormData(prev => ({
           ...prev,
-          totalAmount: formatNumber(total, true)
+          total: formatNumber(total, true)
         }));
       } else {
         setFormData(prev => ({
           ...prev,
-          totalAmount: ''
+          total: ''
         }));
       }
-    } else if (formData.paymentType === 'Gold') {
+    } else {
       setFormData(prev => ({
         ...prev,
-        totalAmount: ''
+        total: ''
       }));
     }
-  }, [formData.paymentType, formData.amount, formData.unitPrice, isUSDT]);
+  }, [formData.amount, formData.ppu]);
 
   const fetchSellerData = async () => {
     const discordId = formData.discordId.replace(/\s/g, '');
@@ -109,7 +133,8 @@ const PaymentForm = ({ onSuccess }) => {
           shomareKart: '',
           name: '',
           shomareTamas: '',
-          rank: ''
+          wallet: '',
+          paypalWallet: ''
         });
       } else {
         setSellerInfo({
@@ -117,7 +142,8 @@ const PaymentForm = ({ onSuccess }) => {
           shomareKart: response.data.card || '',
           name: response.data.name || '',
           shomareTamas: response.data.phone || '',
-          rank: response.data.wallet || ''
+          wallet: response.data.wallet || '',
+          paypalWallet: response.data.paypalWallet || ''
         });
         setUserFound(true);
         setShowEdit(true);
@@ -136,7 +162,7 @@ const PaymentForm = ({ onSuccess }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    if (name === 'amount' || name === 'unitPrice') {
+    if (name === 'amount' || name === 'ppu') {
       const cleanValue = value.replace(/,/g, '');
       setFormData(prev => ({
         ...prev,
@@ -151,25 +177,23 @@ const PaymentForm = ({ onSuccess }) => {
   };
 
   const handleAmountBlur = (e) => {
-    if (formData.paymentType === 'Naghdi') {
-      const value = e.target.value.replace(/,/g, '');
-      if (value && !isNaN(parseFloat(value))) {
-        const numValue = parseFloat(value);
-        setFormData(prev => ({
-          ...prev,
-          amount: formatNumber(numValue, true)
-        }));
-      }
-    }
-  };
-
-  const handleUnitPriceBlur = (e) => {
     const value = e.target.value.replace(/,/g, '');
     if (value && !isNaN(parseFloat(value))) {
       const numValue = parseFloat(value);
       setFormData(prev => ({
         ...prev,
-        unitPrice: formatNumber(numValue, true)
+        amount: formatNumber(numValue, true)
+      }));
+    }
+  };
+
+  const handlePpuBlur = (e) => {
+    const value = e.target.value.replace(/,/g, '');
+    if (value && !isNaN(parseFloat(value))) {
+      const numValue = parseFloat(value);
+      setFormData(prev => ({
+        ...prev,
+        ppu: formatNumber(numValue, true)
       }));
     }
   };
@@ -201,58 +225,48 @@ const PaymentForm = ({ onSuccess }) => {
             sheba: sellerInfo.shomareSheba,
             name: sellerInfo.name,
             phone: sellerInfo.shomareTamas,
-            wallet: sellerInfo.rank || ''
+            wallet: sellerInfo.wallet || '',
+            paypalWallet: sellerInfo.paypalWallet || ''
           });
         } catch (sellerError) {
           console.warn('Failed to update seller info, but continuing with payment submission:', sellerError);
           // Continue with payment submission even if seller update fails
         }
       }
-
-      const finalRealm = formData.realm === 'Custom' ? (formData.customRealm || '') : formData.realm;
       
-      // Always use seller info from form state for payment submission
-      let paymentData = {
+      // Prepare payment data for submission
+      const paymentData = {
         discordId: formData.discordId.replace(/\s/g, ''),
-        paymentType: formData.paymentType,
         paymentDuration: formData.paymentDuration,
-        realm: finalRealm,
-        note: formData.note,
+        amount: formData.amount.replace(/,/g, ''),
+        ppu: formData.ppu.replace(/,/g, ''),
+        total: formData.total.replace(/,/g, ''),
+        paymentSource: formData.paymentSource,
+        paymentMethod: formData.paymentMethod,
+        currency: formData.currency,
         card: sellerInfo.shomareKart,
-        sheba: sellerInfo.shomareSheba,
+        iban: formData.iban,
         name: sellerInfo.name,
-        phone: sellerInfo.shomareTamas,
-        wallet: sellerInfo.rank || ''
+        wallet: sellerInfo.wallet || '',
+        paypalAddress: formData.paypalAddress,
+        note: formData.note,
+        noteAdmin: formData.noteAdmin,
+        status: formData.status
       };
-
-      if (formData.paymentType === 'Gold') {
-        paymentData.amount = formData.amount.replace(/,/g, '');
-        paymentData.price = formData.unitPrice.replace(/,/g, '');
-        paymentData.gheymat = formData.totalAmount.replace(/,/g, '');
-      } else if (formData.paymentType === 'Naghdi') {
-        paymentData.gheymat = formData.amount.replace(/,/g, '');
-        paymentData.amount = '';
-        paymentData.price = '';
-      }
 
       const response = await api.post('/payments', paymentData);
       
       const paymentDurationLabel = paymentDurationOptions.find(opt => opt.value === formData.paymentDuration)?.label || formData.paymentDuration;
-      const realmLabel = formData.realm === 'Custom' ? formData.customRealm : (realmOptions.find(opt => opt.value === formData.realm)?.label || formData.realm);
-      const paymentTypeLabel = formData.paymentType === 'Gold' ? 'فروش گلد' : 'پرداخت نقدی';
       
       const detailedMessage = `پرداخت با موفقیت ثبت شد!\n\n` +
         `شناسه: ${response.data.uniqueID}\n` +
-        `نوع پرداخت: ${paymentTypeLabel}\n` +
         `Discord ID: ${formData.discordId.replace(/\s/g, '')}\n` +
-        `Realm: ${realmLabel}\n` +
-        (formData.paymentType === 'Gold' ? (
-          `مقدار: ${formData.amount}\n` +
-          `قیمت واحد: ${formData.unitPrice} ${isUSDT ? '$' : 'Toman'}\n` +
-          `مبلغ کل: ${formData.totalAmount} ${isUSDT ? '$' : 'Toman'}\n`
-        ) : (
-          `مبلغ: ${formData.amount} ${isUSDT ? '$' : 'Rial'}\n`
-        )) +
+        `مقدار: ${formData.amount}\n` +
+        `قیمت واحد (PPU): ${formData.ppu}\n` +
+        `مبلغ کل: ${formData.total}\n` +
+        (formData.paymentSource ? `Payment Source: ${formData.paymentSource}\n` : '') +
+        (formData.paymentMethod ? `Payment Method: ${formData.paymentMethod}\n` : '') +
+        (formData.currency ? `Currency: ${formData.currency}\n` : '') +
         (formData.paymentDuration ? `مدت زمان: ${paymentDurationLabel}\n` : '') +
         (formData.note ? `یادداشت: ${formData.note}\n` : '') +
         (sellerInfo.name ? `نام: ${sellerInfo.name}\n` : '') +
@@ -264,21 +278,26 @@ const PaymentForm = ({ onSuccess }) => {
       
       setFormData({
         discordId: '',
-        paymentType: '',
         paymentDuration: 'lahzei',
-        realm: '',
-        customRealm: '',
         amount: '',
-        unitPrice: '',
-        totalAmount: '',
-        note: ''
+        ppu: '',
+        total: '',
+        paymentSource: '',
+        paymentMethod: '',
+        currency: '',
+        iban: '',
+        paypalAddress: '',
+        note: '',
+        noteAdmin: '',
+        status: ''
       });
       setSellerInfo({
         shomareSheba: '',
         shomareKart: '',
         name: '',
         shomareTamas: '',
-        rank: ''
+        wallet: '',
+        paypalWallet: ''
       });
       setShowEdit(false);
       setShowAdd(false);
@@ -299,8 +318,7 @@ const PaymentForm = ({ onSuccess }) => {
     }
   };
 
-  const showRealm = formData.paymentType !== '';
-  const showPaymentFields = formData.paymentType !== '' && formData.realm !== '';
+  const showPaymentFields = formData.discordId !== '';
 
   const handleCopyMessage = () => {
     if (message) {
@@ -363,79 +381,6 @@ const PaymentForm = ({ onSuccess }) => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="paymentType">نوع پرداخت</Label>
-              <Select
-                value={formData.paymentType}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, paymentType: value }))}
-                required
-              >
-                <SelectTrigger id="paymentType">
-                  <SelectValue placeholder="انتخاب نوع پرداخت" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Gold">فروش گلد</SelectItem>
-                  <SelectItem value="Naghdi">پرداخت نقدی</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {showRealm && (
-              <div className="space-y-2">
-                <Label htmlFor="realm">Game</Label>
-                {formData.realm === 'Custom' ? (
-                  <Input
-                    id="customRealm"
-                    name="customRealm"
-                    placeholder="Enter custom game name"
-                    value={formData.customRealm || ''}
-                    onChange={(e) => {
-                      setFormData(prev => ({
-                        ...prev,
-                        customRealm: e.target.value
-                      }));
-                    }}
-                    onBlur={(e) => {
-                      if (!e.target.value.trim()) {
-                        setFormData(prev => ({
-                          ...prev,
-                          realm: '',
-                          customRealm: ''
-                        }));
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        setFormData(prev => ({
-                          ...prev,
-                          realm: '',
-                          customRealm: ''
-                        }));
-                      }
-                    }}
-                    required
-                    autoComplete="off"
-                    autoFocus
-                  />
-                ) : (
-                  <Select
-                    value={formData.realm}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, realm: value }))}
-                    required
-                  >
-                    <SelectTrigger id="realm">
-                      <SelectValue placeholder="Select a Realm" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {realmOptions.filter(opt => opt.value !== '').map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            )}
-
             {showPaymentFields && (
               <>
                 <div className="space-y-2">
@@ -443,7 +388,6 @@ const PaymentForm = ({ onSuccess }) => {
                   <Select
                     value={formData.paymentDuration}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, paymentDuration: value }))}
-                    required
                   >
                     <SelectTrigger id="paymentDuration">
                       <SelectValue />
@@ -456,79 +400,131 @@ const PaymentForm = ({ onSuccess }) => {
                   </Select>
                 </div>
 
-                {formData.paymentType === 'Gold' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">Amount</Label>
-                      <Input
-                        id="amount"
-                        name="amount"
-                        value={formData.amount}
-                        onChange={handleInputChange}
-                        autoComplete="off"
-                        inputMode="decimal"
-                        required
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount</Label>
+                  <Input
+                    id="amount"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    onBlur={handleAmountBlur}
+                    autoComplete="off"
+                    inputMode="decimal"
+                    required
+                  />
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="unitPrice">
-                        Unit Price ({isUSDT ? '$' : 'Toman'})
-                      </Label>
-                      <Input
-                        id="unitPrice"
-                        name="unitPrice"
-                        value={formData.unitPrice}
-                        onChange={handleInputChange}
-                        onBlur={handleUnitPriceBlur}
-                        autoComplete="off"
-                        inputMode="decimal"
-                        required
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ppu">PPU (Price Per Unit)</Label>
+                  <Input
+                    id="ppu"
+                    name="ppu"
+                    value={formData.ppu}
+                    onChange={handleInputChange}
+                    onBlur={handlePpuBlur}
+                    autoComplete="off"
+                    inputMode="decimal"
+                    required
+                  />
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="totalAmount">
-                        Total Amount ({isUSDT ? '$' : 'Toman'})
-                      </Label>
-                      <Input
-                        id="totalAmount"
-                        name="totalAmount"
-                        value={formData.totalAmount}
-                        readOnly
-                        className="bg-muted cursor-not-allowed"
-                      />
-                      {!isUSDT && formData.totalAmount && (
-                        <p className="text-sm text-muted-foreground">
-                          = {formatNumber(parseFloat(formData.totalAmount.replace(/,/g, '')) / 10, true)} Toman
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="total">Total</Label>
+                  <Input
+                    id="total"
+                    name="total"
+                    value={formData.total}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                  />
+                </div>
 
-                {formData.paymentType === 'Naghdi' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">
-                      Amount ({isUSDT ? '$' : 'Rial'})
-                    </Label>
-                    <Input
-                      id="amount"
-                      name="amount"
-                      value={formData.amount}
-                      onChange={handleInputChange}
-                      onBlur={handleAmountBlur}
-                      autoComplete="off"
-                      inputMode="decimal"
-                      required
-                    />
-                    {!isUSDT && formData.amount && (
-                      <p className="text-sm text-muted-foreground">
-                        = {formatNumber(parseFloat(formData.amount.replace(/,/g, '')) / 10, true)} Toman
-                      </p>
-                    )}
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="paymentSource">Payment Source</Label>
+                  <Select
+                    value={formData.paymentSource}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentSource: value }))}
+                    disabled={loadingPaymentInfo}
+                  >
+                    <SelectTrigger id="paymentSource">
+                      <SelectValue placeholder="Select Payment Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentInfoOptions.paymentSources.map((source, index) => (
+                        <SelectItem key={index} value={source}>{source}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Payment Method</Label>
+                  <Select
+                    value={formData.paymentMethod}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+                    disabled={loadingPaymentInfo}
+                  >
+                    <SelectTrigger id="paymentMethod">
+                      <SelectValue placeholder="Select Payment Method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentInfoOptions.paymentMethods.map((method, index) => (
+                        <SelectItem key={index} value={method}>{method}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select
+                    value={formData.currency}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
+                    disabled={loadingPaymentInfo}
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue placeholder="Select Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentInfoOptions.currencies.map((currency, index) => (
+                        <SelectItem key={index} value={currency}>{currency}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="iban">Iban</Label>
+                  <Input
+                    id="iban"
+                    name="iban"
+                    value={formData.iban}
+                    onChange={handleInputChange}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="paypalAddress">Paypal Address</Label>
+                  <Input
+                    id="paypalAddress"
+                    name="paypalAddress"
+                    value={formData.paypalAddress}
+                    onChange={handleInputChange}
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Input
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    autoComplete="off"
+                  />
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="note">یادداشت</Label>
@@ -537,6 +533,17 @@ const PaymentForm = ({ onSuccess }) => {
                     name="note"
                     value={formData.note}
                     onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="noteAdmin">Note Admin</Label>
+                  <Input
+                    id="noteAdmin"
+                    name="noteAdmin"
+                    value={formData.noteAdmin}
+                    onChange={handleInputChange}
+                    autoComplete="off"
                   />
                 </div>
               </>
@@ -642,11 +649,23 @@ const PaymentForm = ({ onSuccess }) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rank">Wallet/Rank</Label>
+            <Label htmlFor="wallet">Wallet</Label>
             <Input
-              id="rank"
-              name="rank"
-              value={sellerInfo.rank}
+              id="wallet"
+              name="wallet"
+              value={sellerInfo.wallet}
+              onChange={handleSellerInfoChange}
+              autoComplete="off"
+              disabled={!showEdit && !showAdd}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paypalWallet">Paypal Wallet</Label>
+            <Input
+              id="paypalWallet"
+              name="paypalWallet"
+              value={sellerInfo.paypalWallet}
               onChange={handleSellerInfoChange}
               autoComplete="off"
               disabled={!showEdit && !showAdd}

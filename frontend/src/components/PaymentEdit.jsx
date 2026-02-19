@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, XCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -12,46 +13,90 @@ import { toast } from 'react-hot-toast';
 const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
   const [formData, setFormData] = useState({
     time: '',
+    dueDate: '',
     userid: '',
     paymentDuration: '',
-    realm: '',
     amount: '',
-    price: '',
-    note: '',
-    gheymat: '',
+    ppu: '',
+    total: '',
+    paymentSource: '',
+    paymentMethod: '',
+    currency: '',
     card: '',
-    sheba: '',
+    iban: '',
     name: '',
-    phone: '',
     wallet: '',
-    admin: ''
+    paypalAddress: '',
+    note: '',
+    status: '',
+    noteAdmin: ''
+  });
+
+  const [paymentInfoOptions, setPaymentInfoOptions] = useState({
+    paymentSources: [],
+    paymentMethods: [],
+    currencies: []
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const fetchPaymentInfo = async () => {
+      try {
+        const response = await api.get('/payment-info');
+        setPaymentInfoOptions(response.data);
+      } catch (error) {
+        console.error('Error fetching Payment Info options:', error);
+      }
+    };
+    fetchPaymentInfo();
+  }, []);
+
+  useEffect(() => {
     if (payment) {
-      const gheymatValue = payment.gheymat || '';
-      const formattedGheymat = gheymatValue ? formatNumber(parseFloat(gheymatValue.toString().replace(/,/g, '')) || 0) : '';
+      const totalValue = payment.total || payment.gheymat || '';
+      const formattedTotal = totalValue ? formatNumber(parseFloat(totalValue.toString().replace(/,/g, '')) || 0) : '';
+      const ppuValue = payment.ppu || payment.price || '';
+      const formattedPpu = ppuValue ? formatNumber(parseFloat(ppuValue.toString().replace(/,/g, '')) || 0) : '';
+      
       setFormData({
         time: payment.time || '',
+        dueDate: payment.dueDate || '',
         userid: payment.userid || '',
         paymentDuration: payment.paymentDuration || '',
-        realm: payment.realm || '',
         amount: payment.amount || '',
-        price: payment.price || '',
-        note: payment.note || '',
-        gheymat: formattedGheymat,
+        ppu: formattedPpu,
+        total: formattedTotal,
+        paymentSource: payment.paymentSource || '',
+        paymentMethod: payment.paymentMethod || '',
+        currency: payment.currency || '',
         card: payment.card || '',
-        sheba: payment.sheba || '',
+        iban: payment.iban || '',
         name: payment.name || '',
-        phone: payment.phone || '',
         wallet: payment.wallet || '',
-        admin: payment.admin || ''
+        paypalAddress: payment.paypalAddress || '',
+        note: payment.note || '',
+        status: payment.status || '',
+        noteAdmin: payment.noteAdmin || ''
       });
     }
   }, [payment]);
+
+  // Recalculate total when amount or ppu changes
+  useEffect(() => {
+    if (formData.amount && formData.ppu) {
+      const amount = parseFloat(formData.amount.replace(/,/g, '')) || 0;
+      const ppu = parseFloat(formData.ppu.replace(/,/g, '')) || 0;
+      if (amount > 0 && ppu > 0) {
+        const total = amount * ppu;
+        setFormData(prev => ({
+          ...prev,
+          total: formatNumber(total, true)
+        }));
+      }
+    }
+  }, [formData.amount, formData.ppu]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -61,7 +106,7 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     }));
   };
 
-  const handleGheymatChange = (e) => {
+  const handlePpuChange = (e) => {
     let value = e.target.value.replace(/,/g, '');
     
     if (value && !/^\d*\.?\d*$/.test(value)) {
@@ -79,7 +124,29 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     
     setFormData(prev => ({
       ...prev,
-      gheymat: value
+      ppu: value
+    }));
+  };
+
+  const handleTotalChange = (e) => {
+    let value = e.target.value.replace(/,/g, '');
+    
+    if (value && !/^\d*\.?\d*$/.test(value)) {
+      return;
+    }
+    
+    if (value && !isNaN(parseFloat(value))) {
+      const numValue = parseFloat(value);
+      value = formatNumber(numValue, true);
+    } else if (value === '') {
+      // Allow empty value
+    } else {
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      total: value
     }));
   };
 
@@ -91,7 +158,9 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     try {
       const submitData = {
         ...formData,
-        gheymat: formData.gheymat ? formData.gheymat.toString().replace(/,/g, '') : ''
+        ppu: formData.ppu ? formData.ppu.toString().replace(/,/g, '') : '',
+        total: formData.total ? formData.total.toString().replace(/,/g, '') : '',
+        amount: formData.amount ? formData.amount.toString().replace(/,/g, '') : ''
       };
       await api.put(`/payments/${payment.id}`, submitData);
       toast.success('Payment updated successfully!');
@@ -162,12 +231,12 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="realm">Realm</Label>
+              <Label htmlFor="dueDate">Due Date</Label>
               <Input
                 type="text"
-                id="realm"
-                name="realm"
-                value={formData.realm}
+                id="dueDate"
+                name="dueDate"
+                value={formData.dueDate}
                 onChange={handleChange}
               />
             </div>
@@ -185,26 +254,121 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price</Label>
+              <Label htmlFor="ppu">PPU (Price Per Unit)</Label>
               <Input
                 type="text"
-                id="price"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
+                id="ppu"
+                name="ppu"
+                value={formData.ppu}
+                onChange={handlePpuChange}
                 inputMode="decimal"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="gheymat">Gheymat</Label>
+              <Label htmlFor="total">Total</Label>
               <Input
                 type="text"
-                id="gheymat"
-                name="gheymat"
-                value={formData.gheymat}
-                onChange={handleGheymatChange}
+                id="total"
+                name="total"
+                value={formData.total}
+                onChange={handleTotalChange}
                 inputMode="decimal"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentSource">Payment Source</Label>
+              <Select
+                value={formData.paymentSource}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, paymentSource: value }))}
+              >
+                <SelectTrigger id="paymentSource">
+                  <SelectValue placeholder="Select Payment Source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentInfoOptions.paymentSources.map((source, index) => (
+                    <SelectItem key={index} value={source}>{source}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select
+                value={formData.paymentMethod}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+              >
+                <SelectTrigger id="paymentMethod">
+                  <SelectValue placeholder="Select Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentInfoOptions.paymentMethods.map((method, index) => (
+                    <SelectItem key={index} value={method}>{method}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="currency">Currency</Label>
+              <Select
+                value={formData.currency}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
+              >
+                <SelectTrigger id="currency">
+                  <SelectValue placeholder="Select Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentInfoOptions.currencies.map((currency, index) => (
+                    <SelectItem key={index} value={currency}>{currency}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="iban">Iban</Label>
+              <Input
+                type="text"
+                id="iban"
+                name="iban"
+                value={formData.iban}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paypalAddress">Paypal Address</Label>
+              <Input
+                type="text"
+                id="paypalAddress"
+                name="paypalAddress"
+                value={formData.paypalAddress}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Input
+                type="text"
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="noteAdmin">Note Admin</Label>
+              <Input
+                type="text"
+                id="noteAdmin"
+                name="noteAdmin"
+                value={formData.noteAdmin}
+                onChange={handleChange}
               />
             </div>
 
@@ -231,17 +395,6 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sheba">Sheba</Label>
-              <Input
-                type="text"
-                id="sheba"
-                name="sheba"
-                value={formData.sheba}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
                 type="text"
@@ -253,34 +406,12 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                type="text"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="wallet">Wallet</Label>
               <Input
                 type="text"
                 id="wallet"
                 name="wallet"
                 value={formData.wallet}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="admin">Admin</Label>
-              <Input
-                type="text"
-                id="admin"
-                name="admin"
-                value={formData.admin}
                 onChange={handleChange}
               />
             </div>

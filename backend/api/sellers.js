@@ -19,7 +19,7 @@ router.get('/:discordId', async (req, res) => {
     }
     
     // Try Seller Info sheet first
-    // Seller Info structure: userid (col 0), card (col 1), sheba (col 2), name (col 3), phone (col 4), wallet (col 5)
+    // Seller Info structure: userid (col 0), card (col 1), sheba (col 2), name (col 3), phone (col 4), wallet (col 5), paypalWallet (col 6)
     let row = await sheets.findRowByValue(config.sheetNames.sellerInfo, 0, discordId);
     
     if (row) {
@@ -29,7 +29,8 @@ router.get('/:discordId', async (req, res) => {
         sheba: rawData[2] || '',
         name: rawData[3] || '',
         phone: rawData[4] || '',
-        wallet: rawData[5] || ''
+        wallet: rawData[5] || '',
+        paypalWallet: rawData[6] || ''
       };
       
       cache.setSellerInfo(discordId, sellerInfo);
@@ -47,7 +48,8 @@ router.get('/:discordId', async (req, res) => {
           sheba: rawData[3] || '', // Column D (index 3)
           name: rawData[4] || '', // Column E (index 4)
           phone: rawData[5] || '', // Column F (index 5)
-          wallet: rawData[6] || '' // Column G (index 6)
+          wallet: rawData[6] || '', // Column G (index 6)
+          paypalWallet: rawData[7] || '' // Column H (index 7) - fallback sheet may have different structure
         };
         
         cache.setSellerInfo(discordId, sellerInfo);
@@ -68,7 +70,7 @@ router.get('/:discordId', async (req, res) => {
 // Create or update seller info
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { discordId, card, sheba, name, phone, wallet } = req.body;
+    const { discordId, card, sheba, name, phone, wallet, paypalWallet } = req.body;
     
     if (!discordId) {
       return res.status(400).json({ error: 'Discord ID is required' });
@@ -78,17 +80,18 @@ router.post('/', requireAuth, async (req, res) => {
     let row = await sheets.findRowByValue(config.sheetNames.sellerInfo, 0, discordId);
     
     if (row) {
-      // Update existing - Seller Info: userid (0), card (1), sheba (2), name (3), phone (4), wallet (5)
+      // Update existing - Seller Info: userid (0), card (1), sheba (2), name (3), phone (4), wallet (5), paypalWallet (6)
       await sheets.updateRow(row, {
         1: card || '',
         2: sheba || '',
         3: name || '',
         4: phone || '',
-        5: wallet || ''
+        5: wallet || '',
+        6: paypalWallet || ''
       });
     } else {
-      // Create new - Seller Info structure: userid, card, sheba, name, phone, wallet
-      const rowData = [discordId, card || '', sheba || '', name || '', phone || '', wallet || ''];
+      // Create new - Seller Info structure: userid, card, sheba, name, phone, wallet, paypalWallet
+      const rowData = [discordId, card || '', sheba || '', name || '', phone || '', wallet || '', paypalWallet || ''];
       const sheet = await sheets.getSheet(config.sheetNames.sellerInfo);
       await sheet.addRow(rowData);
     }

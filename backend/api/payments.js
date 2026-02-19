@@ -35,37 +35,33 @@ router.get('/', requireAuth, async (req, res) => {
       return {
         id: index + 4, // Row number (1-indexed, +3 for header rows 1-3, +1 for 0-indexed)
         time: getValue(cols.time),
+        dueDate: getValue(cols.dueDate),
         userid: getValue(cols.userid),
         paymentDuration: getValue(cols.paymentDuration),
-        realm: getValue(cols.realm),
         amount: getValue(cols.amount),
-        price: getValue(cols.price),
-        note: getValue(cols.note),
-        gheymat: getValue(cols.gheymat),
+        ppu: getValue(cols.ppu),
+        total: getValue(cols.total),
+        paymentSource: getValue(cols.paymentSource),
+        paymentMethod: getValue(cols.paymentMethod),
+        currency: getValue(cols.currency),
         card: getValue(cols.card),
-        sheba: getValue(cols.sheba),
+        iban: getValue(cols.iban),
         name: getValue(cols.name),
-        phone: getValue(cols.phone),
         wallet: getValue(cols.wallet),
+        paypalAddress: getValue(cols.paypalAddress),
         uniqueID: getValue(cols.uniqueID),
-        admin: getValue(cols.admin),
-        processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
-        columnQ: (() => {
-          const value = getValue(cols.columnQ);
-          // Handle various formats from Google Sheets
-          // Google Sheets may return: true, 'TRUE', 'true', 'True', 1, '1', 'TRUE ', ' true', etc.
-          if (value === true || value === 1) {
-            return true;
-          }
-          if (typeof value === 'string') {
-            const normalizedValue = value.trim().toUpperCase();
-            if (normalizedValue === 'TRUE' || normalizedValue === '1' || normalizedValue === 'YES' || normalizedValue === 'Y') {
-              return true;
-            }
-          }
-          return false;
-        })(),
-        timeLeftToPay: getValue(cols.timeLeftToPay) || ''
+        note: getValue(cols.note),
+        status: getValue(cols.status),
+        noteAdmin: getValue(cols.noteAdmin),
+        // Legacy fields for backward compatibility
+        price: getValue(cols.ppu), // Alias for ppu
+        gheymat: getValue(cols.total), // Alias for total
+        sheba: '', // No longer in new structure
+        phone: '', // No longer in new structure
+        admin: '', // No longer in new structure
+        processed: false,
+        columnQ: false,
+        timeLeftToPay: ''
       };
     });
     
@@ -142,35 +138,34 @@ router.get('/:id', requireAuth, async (req, res) => {
     const payment = {
       id: parseInt(req.params.id),
       time: getValue(cols.time),
+      dueDate: getValue(cols.dueDate),
       userid: getValue(cols.userid),
       paymentDuration: getValue(cols.paymentDuration),
-      realm: getValue(cols.realm),
       amount: getValue(cols.amount),
-      price: getValue(cols.price),
-      note: getValue(cols.note),
-      gheymat: getValue(cols.gheymat),
+      ppu: getValue(cols.ppu),
+      total: getValue(cols.total),
+      paymentSource: getValue(cols.paymentSource),
+      paymentMethod: getValue(cols.paymentMethod),
+      currency: getValue(cols.currency),
       card: getValue(cols.card),
-      sheba: getValue(cols.sheba),
+      iban: getValue(cols.iban),
       name: getValue(cols.name),
-      phone: getValue(cols.phone),
       wallet: getValue(cols.wallet),
+      paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
-      admin: getValue(cols.admin),
-      processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
-      columnQ: (() => {
-        const value = getValue(cols.columnQ);
-        if (value === true || value === 1) {
-          return true;
-        }
-        if (typeof value === 'string') {
-          const normalizedValue = value.trim().toUpperCase();
-          if (normalizedValue === 'TRUE' || normalizedValue === '1' || normalizedValue === 'YES' || normalizedValue === 'Y') {
-            return true;
-          }
-        }
-        return false;
-      })(),
-      timeLeftToPay: getValue(cols.timeLeftToPay) || ''
+      note: getValue(cols.note),
+      status: getValue(cols.status),
+      noteAdmin: getValue(cols.noteAdmin),
+      // Legacy fields for backward compatibility
+      price: getValue(cols.ppu),
+      gheymat: getValue(cols.total),
+      realm: '',
+      sheba: '',
+      phone: '',
+      admin: '',
+      processed: false,
+      columnQ: false,
+      timeLeftToPay: ''
     };
     
     res.json(payment);
@@ -185,108 +180,100 @@ router.post('/', requireAuth, async (req, res) => {
   try {
     const {
       discordId,
-      paymentType,
       paymentDuration,
-      realm,
       amount,
-      price,
-      gheymat,
-      note,
-      admin,
+      ppu,
+      paymentSource,
+      paymentMethod,
+      currency,
       card,
-      sheba,
+      iban,
       name,
-      phone,
-      wallet
+      wallet,
+      paypalAddress,
+      note,
+      noteAdmin,
+      status
     } = req.body;
     
     // Validate required fields
-    if (!discordId || !paymentType || !realm) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!discordId || !amount || !ppu) {
+      return res.status(400).json({ error: 'Missing required fields: discordId, amount, and ppu are required' });
     }
     
-    // Calculate gheymat if not provided
-    let finalGheymat = gheymat;
-    if (!finalGheymat && amount && price && paymentDuration) {
-      finalGheymat = utils.calculateGheymat(paymentDuration, parseFloat(amount), parseFloat(price));
-    }
+    // Calculate total: always amount * PPU
+    const amountNum = parseFloat(amount) || 0;
+    const ppuNum = parseFloat(ppu) || 0;
+    const total = amountNum * ppuNum;
+    
+    // Get Payment Info to calculate due date
+    const paymentInfo = await sheets.getPaymentInfoOptions();
+    const dueDateHours = paymentInfo.dueDateInfo.hours || 24;
+    
+    // Calculate due date: current time + hours from Payment Info
+    const now = new Date();
+    const dueDate = new Date(now.getTime() + (dueDateHours * 60 * 60 * 1000));
+    const dueDateFormatted = utils.formatDate(dueDate);
     
     const time = utils.formatDate();
     const uniqueID = utils.generateUniqueId();
-    // Use logged-in user's nickname from Users sheet (column E) instead of username
-    const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
     
-    // Get payment duration message
-    const paymentDurationMessage = config.paymentDurationMessages[paymentDuration] || paymentDuration;
-    
-    // Prepare payment data for sheet - match original structure
-    // Original: [time, userid, paymentDuration, amount, price, "", gheymat, realm, card, sheba, name, phone, wallet, uniqueID, admin]
-    // But we need to match the column structure from config
+    // Prepare payment data for sheet - Payment v2 structure
     const cols = config.paymentSheetColumns;
     const paymentData = {};
     
     // Map data to column indices
     paymentData[cols.time] = time;
+    paymentData[cols.dueDate] = dueDateFormatted;
     paymentData[cols.userid] = discordId;
     paymentData[cols.paymentDuration] = paymentDuration || '';
     paymentData[cols.amount] = amount || '';
-    paymentData[cols.price] = price || '';
-    
-    // For USDT payments, put wallet in Note column (column M/12)
-    if (paymentDuration === 'usdt days' && wallet) {
-      // Combine wallet with note if note exists, otherwise just use wallet
-      paymentData[cols.note] = note ? `${note} | Wallet: ${wallet}` : `Wallet: ${wallet}`;
-    } else {
-      paymentData[cols.note] = note || '';
-    }
-    
-    paymentData[cols.gheymat] = finalGheymat || '';
-    paymentData[cols.realm] = realm;
+    paymentData[cols.ppu] = ppu || '';
+    paymentData[cols.total] = total.toString();
+    paymentData[cols.paymentSource] = paymentSource || '';
+    paymentData[cols.paymentMethod] = paymentMethod || '';
+    paymentData[cols.currency] = currency || '';
     paymentData[cols.card] = card || '';
-    paymentData[cols.sheba] = sheba || '';
+    paymentData[cols.iban] = iban || '';
     paymentData[cols.name] = name || '';
-    paymentData[cols.phone] = phone || '';
+    paymentData[cols.wallet] = wallet || '';
+    paymentData[cols.paypalAddress] = paypalAddress || '';
     paymentData[cols.uniqueID] = uniqueID;
-    paymentData[cols.admin] = adminName;
-    // Don't set processed field - leave it empty (managed via sheet itself)
+    paymentData[cols.note] = note || '';
+    paymentData[cols.status] = status || '';
+    paymentData[cols.noteAdmin] = noteAdmin || '';
     
-    // Add to payment sheet - create array in correct column order
-    // Columns: 0-4 (time, userid, paymentDuration, amount, price), 5 (#VALUE! - leave empty), 6-15 (rest)
-    const rowData = new Array(16).fill(''); // 16 columns total (0-15)
+    // Add to payment sheet - create array in correct column order (19 columns: 0-18)
+    const rowData = new Array(19).fill('');
     Object.keys(paymentData).forEach(colIndex => {
       const idx = parseInt(colIndex);
-      if (!isNaN(idx) && idx < 16) {
+      if (!isNaN(idx) && idx < 19) {
         rowData[idx] = paymentData[colIndex];
       }
     });
-    // Column 5 is #VALUE! - leave it empty (already empty from fill(''))
     
-    // Add row using sheets service - it will use raw API for Payment sheet
+    // Add row using sheets service - it will use raw API for Payment v2 sheet
     await sheets.addRow(config.sheetNames.payment, rowData);
     
-    // Send Discord webhook
+    // Send Discord webhook (with legacy format for compatibility)
     try {
-      const currency = paymentDuration === 'usdt days' ? '$' : 'Rial';
-      // For USDT, gheymat is already amount * price (not multiplied by 10)
-      // For other payment types, gheymat is amount * price * 10, so divide by 10 for display
-      const webhookGheymat = paymentDuration === 'usdt days' 
-        ? (finalGheymat || 0)
-        : (finalGheymat ? finalGheymat / 10 : 0);
+      const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
+      const paymentDurationMessage = config.paymentDurationMessages[paymentDuration] || paymentDuration || '';
       await discord.sendDiscordMessage({
         discordId,
-        amount: parseFloat(amount) || 0,
-        price: parseFloat(price) || 0,
-        gheymat: webhookGheymat,
+        amount: amountNum,
+        price: ppuNum,
+        gheymat: total,
         paymentDuration: paymentDurationMessage,
-        realm,
+        realm: '', // No longer used
         admin: adminName,
         note: note || '',
         time,
         id: uniqueID,
-        sheba: sheba || '',
+        sheba: '', // No longer used
         name: name || '',
         action: 'create',
-        currency: currency
+        currency: currency || ''
       });
     } catch (webhookError) {
       console.error('Discord webhook error:', webhookError);
@@ -294,14 +281,15 @@ router.post('/', requireAuth, async (req, res) => {
     }
     
     // Log payment creation
+    const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
     await sheets.addPaymentLog(uniqueID, 'create', adminName, {
-      paymentType,
       paymentDuration,
-      realm,
       amount,
-      price,
-      gheymat: finalGheymat,
-      note,
+      ppu,
+      total,
+      paymentSource,
+      paymentMethod,
+      currency,
       discordId
     });
     
@@ -311,7 +299,7 @@ router.post('/', requireAuth, async (req, res) => {
     res.json({ 
       message: 'Payment created successfully',
       uniqueID,
-      gheymat: finalGheymat
+      total: total
     });
   } catch (error) {
     console.error('Error creating payment:', error);
@@ -341,31 +329,45 @@ router.put('/:id', requireAuth, async (req, res) => {
     const currentPayment = {
       id: req.params.id,
       time: getValue(cols.time),
+      dueDate: getValue(cols.dueDate),
       userid: getValue(cols.userid),
       paymentDuration: getValue(cols.paymentDuration),
-      realm: getValue(cols.realm),
       amount: getValue(cols.amount),
-      price: getValue(cols.price),
-      gheymat: getValue(cols.gheymat),
-      note: getValue(cols.note),
+      ppu: getValue(cols.ppu),
+      total: getValue(cols.total),
+      paymentSource: getValue(cols.paymentSource),
+      paymentMethod: getValue(cols.paymentMethod),
+      currency: getValue(cols.currency),
       card: getValue(cols.card),
-      sheba: getValue(cols.sheba),
+      iban: getValue(cols.iban),
       name: getValue(cols.name),
-      phone: getValue(cols.phone),
       wallet: getValue(cols.wallet),
+      paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
-      admin: getValue(cols.admin),
-      processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true'
+      note: getValue(cols.note),
+      status: getValue(cols.status),
+      noteAdmin: getValue(cols.noteAdmin)
     };
     
     const updateData = {};
     const changes = {}; // Track changes for logging
     
     // Update only provided fields - use column index as key
+    // Also recalculate total if amount or ppu changes
+    let recalculateTotal = false;
+    let newAmount = currentPayment.amount;
+    let newPpu = currentPayment.ppu;
+    
     if (req.body.time !== undefined) {
       updateData[cols.time] = req.body.time;
       if (req.body.time !== currentPayment.time) {
         changes.time = { old: currentPayment.time, new: req.body.time };
+      }
+    }
+    if (req.body.dueDate !== undefined) {
+      updateData[cols.dueDate] = req.body.dueDate;
+      if (req.body.dueDate !== currentPayment.dueDate) {
+        changes.dueDate = { old: currentPayment.dueDate, new: req.body.dueDate };
       }
     }
     if (req.body.userid !== undefined) {
@@ -380,34 +382,50 @@ router.put('/:id', requireAuth, async (req, res) => {
         changes.paymentDuration = { old: currentPayment.paymentDuration, new: req.body.paymentDuration };
       }
     }
-    if (req.body.realm !== undefined) {
-      updateData[cols.realm] = req.body.realm;
-      if (req.body.realm !== currentPayment.realm) {
-        changes.realm = { old: currentPayment.realm, new: req.body.realm };
-      }
-    }
     if (req.body.amount !== undefined) {
       updateData[cols.amount] = req.body.amount;
+      newAmount = req.body.amount;
+      recalculateTotal = true;
       if (req.body.amount !== currentPayment.amount) {
         changes.amount = { old: currentPayment.amount, new: req.body.amount };
       }
     }
-    if (req.body.price !== undefined) {
-      updateData[cols.price] = req.body.price;
-      if (req.body.price !== currentPayment.price) {
-        changes.price = { old: currentPayment.price, new: req.body.price };
+    if (req.body.ppu !== undefined || req.body.price !== undefined) {
+      const ppuValue = req.body.ppu !== undefined ? req.body.ppu : req.body.price;
+      updateData[cols.ppu] = ppuValue;
+      newPpu = ppuValue;
+      recalculateTotal = true;
+      if (ppuValue !== currentPayment.ppu) {
+        changes.ppu = { old: currentPayment.ppu, new: ppuValue };
       }
     }
-    if (req.body.note !== undefined) {
-      updateData[cols.note] = req.body.note;
-      if (req.body.note !== currentPayment.note) {
-        changes.note = { old: currentPayment.note, new: req.body.note };
+    if (req.body.total !== undefined) {
+      updateData[cols.total] = req.body.total;
+      if (req.body.total !== currentPayment.total) {
+        changes.total = { old: currentPayment.total, new: req.body.total };
+      }
+    } else if (recalculateTotal) {
+      // Recalculate total if amount or ppu changed
+      const total = (parseFloat(newAmount) || 0) * (parseFloat(newPpu) || 0);
+      updateData[cols.total] = total.toString();
+      changes.total = { old: currentPayment.total, new: total.toString() };
+    }
+    if (req.body.paymentSource !== undefined) {
+      updateData[cols.paymentSource] = req.body.paymentSource;
+      if (req.body.paymentSource !== currentPayment.paymentSource) {
+        changes.paymentSource = { old: currentPayment.paymentSource, new: req.body.paymentSource };
       }
     }
-    if (req.body.gheymat !== undefined) {
-      updateData[cols.gheymat] = req.body.gheymat;
-      if (req.body.gheymat !== currentPayment.gheymat) {
-        changes.gheymat = { old: currentPayment.gheymat, new: req.body.gheymat };
+    if (req.body.paymentMethod !== undefined) {
+      updateData[cols.paymentMethod] = req.body.paymentMethod;
+      if (req.body.paymentMethod !== currentPayment.paymentMethod) {
+        changes.paymentMethod = { old: currentPayment.paymentMethod, new: req.body.paymentMethod };
+      }
+    }
+    if (req.body.currency !== undefined) {
+      updateData[cols.currency] = req.body.currency;
+      if (req.body.currency !== currentPayment.currency) {
+        changes.currency = { old: currentPayment.currency, new: req.body.currency };
       }
     }
     if (req.body.card !== undefined) {
@@ -416,10 +434,10 @@ router.put('/:id', requireAuth, async (req, res) => {
         changes.card = { old: currentPayment.card, new: req.body.card };
       }
     }
-    if (req.body.sheba !== undefined) {
-      updateData[cols.sheba] = req.body.sheba;
-      if (req.body.sheba !== currentPayment.sheba) {
-        changes.sheba = { old: currentPayment.sheba, new: req.body.sheba };
+    if (req.body.iban !== undefined) {
+      updateData[cols.iban] = req.body.iban;
+      if (req.body.iban !== currentPayment.iban) {
+        changes.iban = { old: currentPayment.iban, new: req.body.iban };
       }
     }
     if (req.body.name !== undefined) {
@@ -428,29 +446,44 @@ router.put('/:id', requireAuth, async (req, res) => {
         changes.name = { old: currentPayment.name, new: req.body.name };
       }
     }
-    if (req.body.phone !== undefined) {
-      updateData[cols.phone] = req.body.phone;
-      if (req.body.phone !== currentPayment.phone) {
-        changes.phone = { old: currentPayment.phone, new: req.body.phone };
-      }
-    }
     if (req.body.wallet !== undefined) {
       updateData[cols.wallet] = req.body.wallet;
       if (req.body.wallet !== currentPayment.wallet) {
         changes.wallet = { old: currentPayment.wallet, new: req.body.wallet };
       }
     }
-    if (req.body.admin !== undefined) {
-      updateData[cols.admin] = req.body.admin;
-      if (req.body.admin !== currentPayment.admin) {
-        changes.admin = { old: currentPayment.admin, new: req.body.admin };
+    if (req.body.paypalAddress !== undefined) {
+      updateData[cols.paypalAddress] = req.body.paypalAddress;
+      if (req.body.paypalAddress !== currentPayment.paypalAddress) {
+        changes.paypalAddress = { old: currentPayment.paypalAddress, new: req.body.paypalAddress };
       }
     }
-    if (req.body.processed !== undefined) {
-      updateData[cols.processed] = req.body.processed;
-      if (req.body.processed !== currentPayment.processed) {
-        changes.processed = { old: currentPayment.processed, new: req.body.processed };
+    if (req.body.note !== undefined) {
+      updateData[cols.note] = req.body.note;
+      if (req.body.note !== currentPayment.note) {
+        changes.note = { old: currentPayment.note, new: req.body.note };
       }
+    }
+    if (req.body.status !== undefined) {
+      updateData[cols.status] = req.body.status;
+      if (req.body.status !== currentPayment.status) {
+        changes.status = { old: currentPayment.status, new: req.body.status };
+      }
+    }
+    if (req.body.noteAdmin !== undefined) {
+      updateData[cols.noteAdmin] = req.body.noteAdmin;
+      if (req.body.noteAdmin !== currentPayment.noteAdmin) {
+        changes.noteAdmin = { old: currentPayment.noteAdmin, new: req.body.noteAdmin };
+      }
+    }
+    // Legacy field support
+    if (req.body.price !== undefined && req.body.ppu === undefined) {
+      updateData[cols.ppu] = req.body.price;
+      newPpu = req.body.price;
+      recalculateTotal = true;
+    }
+    if (req.body.gheymat !== undefined && req.body.total === undefined) {
+      updateData[cols.total] = req.body.gheymat;
     }
     
     // Update using sheets service (will use raw API for Payment sheet)
@@ -462,10 +495,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       await sheets.addPaymentLog(currentPayment.uniqueID, 'edit', updatedBy, changes);
     }
     
-    // Get updated payment data for webhook (include old values, especially oldPrice)
-    const paymentDurationForCurrency = req.body.paymentDuration || currentPayment.paymentDuration;
-    const currency = paymentDurationForCurrency === 'usdt days' ? '$' : 'Rial';
-    
+    // Get updated payment data for webhook
     const updatedPayment = {
       ...currentPayment,
       ...req.body,
@@ -474,12 +504,11 @@ router.put('/:id', requireAuth, async (req, res) => {
       action: 'update',
       updatedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
       // Include old values for comparison
-      oldPrice: currentPayment.price,
+      oldPpu: currentPayment.ppu,
       oldAmount: currentPayment.amount,
-      oldGheymat: currentPayment.gheymat,
-      oldRealm: currentPayment.realm,
+      oldTotal: currentPayment.total,
       oldPaymentDuration: currentPayment.paymentDuration,
-      currency: currency
+      currency: currentPayment.currency || ''
     };
     
     // Send Discord webhook
@@ -623,24 +652,34 @@ router.delete('/:id', requireAuth, async (req, res) => {
     const deletedPayment = {
       id: req.params.id,
       time: getValue(cols.time),
+      dueDate: getValue(cols.dueDate),
       userid: getValue(cols.userid),
       paymentDuration: getValue(cols.paymentDuration),
-      realm: getValue(cols.realm),
       amount: getValue(cols.amount),
-      price: getValue(cols.price),
-      gheymat: getValue(cols.gheymat),
-      note: getValue(cols.note),
+      ppu: getValue(cols.ppu),
+      total: getValue(cols.total),
+      paymentSource: getValue(cols.paymentSource),
+      paymentMethod: getValue(cols.paymentMethod),
+      currency: getValue(cols.currency),
       card: getValue(cols.card),
-      sheba: getValue(cols.sheba),
+      iban: getValue(cols.iban),
       name: getValue(cols.name),
-      phone: getValue(cols.phone),
       wallet: getValue(cols.wallet),
+      paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
-      admin: getValue(cols.admin),
-      processed: getValue(cols.processed) === true || getValue(cols.processed) === 'TRUE' || getValue(cols.processed) === 'true',
+      note: getValue(cols.note),
+      status: getValue(cols.status),
+      noteAdmin: getValue(cols.noteAdmin),
       action: 'delete',
       deletedBy: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown',
-      currency: getValue(cols.paymentDuration) === 'usdt days' ? '$' : 'Rial'
+      // Legacy fields for webhook compatibility
+      price: getValue(cols.ppu),
+      gheymat: getValue(cols.total),
+      realm: '',
+      sheba: '',
+      phone: '',
+      admin: '',
+      processed: false
     };
     
     await sheets.deleteRow(row, config.sheetNames.payment, rowIndex);

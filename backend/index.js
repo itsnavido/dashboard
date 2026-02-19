@@ -14,6 +14,7 @@ const paymentsRoutes = require('./api/payments');
 const sellersRoutes = require('./api/sellers');
 const usersRoutes = require('./api/users');
 const analyticsRoutes = require('./api/analytics');
+const paymentInfoRoutes = require('./api/paymentInfo');
 
 // Create Express application instance
 const app = express();
@@ -64,7 +65,8 @@ app.get('/', (req, res) => {
       payments: '/api/payments',
       sellers: '/api/sellers',
       users: '/api/users',
-      analytics: '/api/analytics'
+      analytics: '/api/analytics',
+      paymentInfo: '/api/payment-info'
     }
   });
 });
@@ -75,6 +77,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/sellers', sellersRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/payment-info', paymentInfoRoutes);
 
 // 404 handler for unmatched routes
 app.use((req, res) => {

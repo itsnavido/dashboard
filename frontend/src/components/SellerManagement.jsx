@@ -22,7 +22,8 @@ const SellerManagement = () => {
     sheba: '',
     name: '',
     phone: '',
-    wallet: ''
+    wallet: '',
+    paypalWallet: ''
   });
 
   const handleSearch = async (e) => {
@@ -48,7 +49,8 @@ const SellerManagement = () => {
           sheba: '',
           name: '',
           phone: '',
-          wallet: ''
+          wallet: '',
+          paypalWallet: ''
         });
       } else {
         setSellerInfo({ discordId, exists: true });
@@ -57,7 +59,8 @@ const SellerManagement = () => {
           sheba: response.data.sheba || '',
           name: response.data.name || '',
           phone: response.data.phone || '',
-          wallet: response.data.wallet || ''
+          wallet: response.data.wallet || '',
+          paypalWallet: response.data.paypalWallet || ''
         });
       }
     } catch (err) {
@@ -69,7 +72,8 @@ const SellerManagement = () => {
           sheba: '',
           name: '',
           phone: '',
-          wallet: ''
+          wallet: '',
+          paypalWallet: ''
         });
       } else {
         setError(err.response?.data?.error || 'Failed to fetch seller information');
@@ -106,7 +110,8 @@ const SellerManagement = () => {
         sheba: formData.sheba,
         name: formData.name,
         phone: formData.phone,
-        wallet: formData.wallet
+        wallet: formData.wallet,
+        paypalWallet: formData.paypalWallet
       });
 
       const successMsg = sellerInfo.exists 
@@ -137,7 +142,8 @@ const SellerManagement = () => {
       sheba: '',
       name: '',
       phone: '',
-      wallet: ''
+      wallet: '',
+      paypalWallet: ''
     });
     setError('');
     setSuccess('');
@@ -283,13 +289,25 @@ const SellerManagement = () => {
                       />
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <Label htmlFor="wallet">Wallet</Label>
                       <Input
                         id="wallet"
                         name="wallet"
                         type="text"
                         value={formData.wallet}
+                        onChange={handleInputChange}
+                        autoComplete="off"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="paypalWallet">Paypal Wallet</Label>
+                      <Input
+                        id="paypalWallet"
+                        name="paypalWallet"
+                        type="text"
+                        value={formData.paypalWallet}
                         onChange={handleInputChange}
                         autoComplete="off"
                       />
