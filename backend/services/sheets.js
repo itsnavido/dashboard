@@ -295,14 +295,14 @@ async function addPaymentRowRaw(rowData) {
       throw new Error(`Sheet "${sheetName}" not found`);
     }
 
-    // Append row using raw API - up to Author (column Q = 17 cells). Status (R) is read-only.
-    const rowDataTrimmed = Array.isArray(rowData) ? rowData.slice(0, 17) : [];
-    const padded = new Array(17).fill('');
-    rowDataTrimmed.forEach((v, i) => { if (i < 17) padded[i] = v; });
+    // Append row using raw API - up to Author (column R = 18 cells). Status (S) is read-only.
+    const rowDataTrimmed = Array.isArray(rowData) ? rowData.slice(0, 18) : [];
+    const padded = new Array(18).fill('');
+    rowDataTrimmed.forEach((v, i) => { if (i < 18) padded[i] = v; });
 
     await client.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:Q`, // Columns A–Q (Timestamp through Author)
+      range: `${sheetName}!A:R`, // Columns A–R (Timestamp through Author)
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
