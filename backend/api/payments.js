@@ -298,7 +298,6 @@ router.post('/', requireAuth, async (req, res) => {
     }
     
     // Log payment creation
-    const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
     await sheets.addPaymentLog(uniqueID, 'create', adminName, {
       amount,
       ppu,
