@@ -33,7 +33,7 @@ router.get('/', requireAuth, async (req, res) => {
       };
       
       return {
-        id: index + 4, // Row number (1-indexed, +3 for header rows 1-3, +1 for 0-indexed)
+        id: index + 4,
         time: getValue(cols.time),
         dueDate: getValue(cols.dueDate),
         userid: getValue(cols.userid),
@@ -50,14 +50,14 @@ router.get('/', requireAuth, async (req, res) => {
         uniqueID: getValue(cols.uniqueID),
         note: getValue(cols.note),
         paymentTime: getValue(cols.paymentTime),
-        // Legacy fields for backward compatibility
-        price: getValue(cols.ppu), // Alias for ppu
-        gheymat: getValue(cols.total), // Alias for total
-        sheba: '', // No longer in new structure
-        phone: '', // No longer in new structure
-        admin: '', // No longer in new structure
+        status: getValue(cols.status),
+        price: getValue(cols.ppu),
+        gheymat: getValue(cols.total),
+        sheba: getValue(cols.iban),
+        phone: '',
+        admin: '',
         processed: false,
-        columnQ: false,
+        columnQ: (getValue(cols.status) || '').trim().toLowerCase() === 'paid',
         timeLeftToPay: ''
       };
     });
@@ -150,18 +150,17 @@ router.get('/:id', requireAuth, async (req, res) => {
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
       paymentTime: getValue(cols.paymentTime),
-      // Legacy fields for backward compatibility
+      status: getValue(cols.status),
       price: getValue(cols.ppu),
       gheymat: getValue(cols.total),
-      realm: '',
-      sheba: '',
+      sheba: getValue(cols.iban),
       phone: '',
       admin: '',
       processed: false,
-      columnQ: false,
+      columnQ: (getValue(cols.status) || '').trim().toLowerCase() === 'paid',
       timeLeftToPay: ''
     };
-    
+
     res.json(payment);
   } catch (error) {
     console.error('Error fetching payment:', error);
@@ -269,8 +268,8 @@ router.post('/', requireAuth, async (req, res) => {
       }
     });
     
-    // Add row using sheets service - it will use raw API for Payment v2 sheet
-    await sheets.addRow(config.sheetNames.payment, rowData);
+    // Append row to Payment sheet (raw append API)
+    await sheets.appendPaymentRow(rowData);
     
     // Send Discord webhook (with legacy format for compatibility)
     try {
@@ -520,74 +519,53 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Update payment status (mark as paid/unpaid)
+// Update payment status (mark as paid/unpaid/failed) — writes to Status column (Q) only
 router.patch('/:id/status', requireAuth, async (req, res) => {
   try {
     const rowIndex = parseInt(req.params.id) - 4;
-    const { columnQ } = req.body;
-    
-    if (typeof columnQ !== 'boolean' && columnQ !== undefined) {
-      return res.status(400).json({ error: 'columnQ must be a boolean' });
+    const { columnQ, processed, status: statusValue } = req.body;
+
+    let newStatus = '';
+    if (statusValue !== undefined && typeof statusValue === 'string') {
+      const s = statusValue.trim();
+      if (s === 'Paid' || s === 'Unpaid' || s === 'Failed') newStatus = s;
+      else if (s.toLowerCase() === 'paid') newStatus = 'Paid';
+      else if (s.toLowerCase() === 'failed') newStatus = 'Failed';
+      else newStatus = 'Unpaid';
+    } else if (columnQ !== undefined) {
+      newStatus = columnQ ? 'Paid' : 'Unpaid';
+    } else if (processed !== undefined) {
+      newStatus = processed ? 'Paid' : 'Unpaid';
+    } else {
+      return res.status(400).json({ error: 'status, columnQ, or processed must be provided' });
     }
-    
+
     const rows = await sheets.getRows(config.sheetNames.payment);
-    
     if (rowIndex < 0 || rowIndex >= rows.length) {
       return res.status(404).json({ error: 'Payment not found' });
     }
-    
+
     const row = rows[rowIndex];
     const cols = config.paymentSheetColumns;
-    
-    // Get current payment data
     const getValue = (colIndex) => {
       const rawData = row._rawData || [];
       return rawData[colIndex] || '';
     };
-    
-    // Check if columnQ is currently TRUE
-    const isColumnQTrue = (value) => {
-      return value === true || 
-             value === 'TRUE' || 
-             value === 'true' ||
-             value === 'True' ||
-             value === 1 ||
-             value === '1' ||
-             (typeof value === 'string' && value.trim().toUpperCase() === 'TRUE');
-    };
-    
-    const currentColumnQ = getValue(cols.columnQ);
-    const currentPayment = {
-      uniqueID: getValue(cols.uniqueID),
-      columnQ: isColumnQTrue(currentColumnQ),
-    };
-    
-    // Update status - use columnQ if provided, otherwise fallback to processed for backward compatibility
-    const updateData = {};
-    if (columnQ !== undefined) {
-      updateData[cols.columnQ] = columnQ ? 'TRUE' : 'FALSE';
-    } else if (req.body.processed !== undefined) {
-      // Backward compatibility: if processed is provided, update columnQ
-      updateData[cols.columnQ] = req.body.processed ? 'TRUE' : 'FALSE';
-    } else {
-      return res.status(400).json({ error: 'columnQ or processed must be provided' });
-    }
-    
+    const currentStatus = getValue(cols.status);
+    const currentPayment = { uniqueID: getValue(cols.uniqueID) };
+
+    const updateData = { [cols.status]: newStatus };
     await sheets.updateRow(row, updateData, config.sheetNames.payment, rowIndex);
-    
-    // Log the change
-    const newColumnQ = columnQ !== undefined ? columnQ : req.body.processed;
-    if (newColumnQ !== currentPayment.columnQ) {
+
+    if (newStatus !== (currentStatus || '').trim()) {
       const updatedBy = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
       await sheets.addPaymentLog(currentPayment.uniqueID, 'edit', updatedBy, {
-        columnQ: { old: currentPayment.columnQ, new: newColumnQ }
+        status: { old: currentStatus || '', new: newStatus }
       });
     }
-    
-    // Invalidate cache
+
     cache.invalidatePaymentList();
-    
-    res.json({ message: 'Payment status updated successfully', columnQ: newColumnQ });
+    res.json({ message: 'Payment status updated successfully', status: newStatus });
   } catch (error) {
     console.error('Error updating payment status:', error);
     res.status(500).json({ error: 'Internal server error' });

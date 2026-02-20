@@ -26,24 +26,26 @@ module.exports = {
   },
 
   // Column mappings for Payment v2 sheet (0-indexed)
-  // Headers: Timestamp, Due Date, Discord ID, Payment Time, Amount, PPU, Total, Payment Source, Payment Method, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note
+  // Write only A–P (0–15). Status (Q) is read-only for display.
+  // Headers: Timestamp, Due Date, Discord ID, Payment Time, Amount, PPU, Total, Payment Source, Payment Method, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note [, Status]
   paymentSheetColumns: {
     time: 0,              // Timestamp
-    dueDate: 1,           // Due Date
-    userid: 2,            // Discord ID
-    paymentTime: 3,       // Payment Time (same as Timestamp)
-    amount: 4,            // Amount
-    ppu: 5,               // PPU (Price Per Unit)
-    total: 6,             // Total (amount * PPU)
-    paymentSource: 7,     // Payment Source
-    paymentMethod: 8,     // Payment Method
-    card: 9,             // Card Number
-    iban: 10,             // Iban
-    name: 11,             // Name
-    wallet: 12,           // Wallet
-    paypalAddress: 13,    // Paypal Address
-    uniqueID: 14,         // UUID
-    note: 15              // Note
+    dueDate: 1,            // Due Date
+    userid: 2,             // Discord ID
+    paymentTime: 3,        // Payment Time (same as Timestamp)
+    amount: 4,             // Amount
+    ppu: 5,                // PPU (Price Per Unit)
+    total: 6,              // Total (amount * PPU)
+    paymentSource: 7,      // Payment Source
+    paymentMethod: 8,      // Payment Method
+    card: 9,               // Card Number
+    iban: 10,              // Iban (Sheba)
+    name: 11,              // Name
+    wallet: 12,            // Wallet
+    paypalAddress: 13,     // Paypal Address
+    uniqueID: 14,          // UUID
+    note: 15,              // Note (last column we write)
+    status: 16             // Status (read-only; we never write past Note)
   },
 
   // Column mappings for Seller Info sheet (0-indexed)

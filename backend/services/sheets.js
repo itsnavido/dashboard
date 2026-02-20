@@ -234,18 +234,18 @@ async function getPaymentRowsRaw() {
       throw new Error(`Sheet "${sheetName}" not found`);
     }
 
-    // Read data starting from row 4 (skip header rows 1-3)
+    // Read data starting from row 4 (skip header rows 1-3). A4:Q = 17 columns (Status in Q is read-only for display).
     const response = await client.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A4:P`, // A4:P means start from row 4, columns A-P (16 columns, rows 1-3 are headers)
+      range: `${sheetName}!A4:Q`,
     });
 
     const rows = response.data.values || [];
     
     // Convert to format compatible with google-spreadsheet row objects
     return rows.map((rowData, index) => {
-      // Pad row to 16 columns (A-P for Payment v2)
-      const paddedRow = new Array(16).fill('').map((_, i) => rowData[i] || '');
+      // Pad row to 17 columns (A–Q; we only write A–P)
+      const paddedRow = new Array(17).fill('').map((_, i) => rowData[i] || '');
       
       return {
         _rawData: paddedRow,
@@ -295,14 +295,18 @@ async function addPaymentRowRaw(rowData) {
       throw new Error(`Sheet "${sheetName}" not found`);
     }
 
-    // Append row using raw API (will append after existing data, after row 3)
+    // Append row using raw API - only up to Note (column P = 16 cells). No extra cells.
+    const rowDataTrimmed = Array.isArray(rowData) ? rowData.slice(0, 16) : [];
+    const padded = new Array(16).fill('');
+    rowDataTrimmed.forEach((v, i) => { if (i < 16) padded[i] = v; });
+
     await client.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:P`, // Append to columns A-P (16 columns for Payment v2)
+      range: `${sheetName}!A:P`, // Only columns A–P (Timestamp through Note)
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
-        values: [rowData]
+        values: [padded]
       }
     });
 
@@ -481,24 +485,20 @@ async function updatePaymentRowRaw(rowIndex, updateData) {
       throw new Error(`Sheet "${sheetName}" not found`);
     }
 
-    // Convert column indices to A1 notation (A=0, B=1, etc.)
-    // Payment sheet uses columns 0-15 (A-P), so simple conversion is sufficient
+    // Convert column indices to A1 notation (A=0, B=1, ..., Q=16). We write only 0-15 on create; 16 is Status (read/write on update).
     const columnToLetter = (col) => {
-      if (col < 0 || col > 15) {
-        console.warn(`Column index ${col} is out of range (0-15)`);
+      if (col < 0 || col > 16) {
+        console.warn(`Column index ${col} is out of range (0-16)`);
         return null;
       }
-      // A=0, B=1, ..., P=15
       return String.fromCharCode(65 + col);
     };
 
     // Build update requests for each column that needs updating
-    // Filter out invalid columns (like column 5 which is #VALUE!)
     const updateRequests = Object.keys(updateData)
       .filter(colIndex => {
         const col = parseInt(colIndex);
-        // Skip column 5 (#VALUE!) and ensure column is valid (0-15)
-        return !isNaN(col) && col >= 0 && col <= 15 && col !== 5;
+        return !isNaN(col) && col >= 0 && col <= 16;
       })
       .map(colIndex => {
         const col = parseInt(colIndex);
@@ -804,12 +804,18 @@ async function getPaymentInfoOptions() {
   }
 }
 
+/** Append a single row to the Payment sheet (raw API append, no addRow) */
+async function appendPaymentRow(rowData) {
+  return await addPaymentRowRaw(rowData);
+}
+
 module.exports = {
   initSheets,
   initSheetsClient,
   getSheet,
   getRows,
   addRow,
+  appendPaymentRow,
   findRowByValue,
   updateRow,
   updateUserRowRaw,

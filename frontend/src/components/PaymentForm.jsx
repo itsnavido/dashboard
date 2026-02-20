@@ -185,12 +185,13 @@ const PaymentForm = ({ onSuccess }) => {
   }, [selectedDueDateOption]);
 
   const fetchSellerData = async () => {
-    const discordId = formData.discordId.replace(/\s/g, '');
+    const raw = (formData && formData.discordId != null) ? String(formData.discordId) : '';
+    const discordId = raw.replace(/\s/g, '');
     if (!discordId) return;
 
     setLoadingSeller(true);
     try {
-      const response = await api.get(`/sellers/${discordId}`);
+      const response = await api.get(`/sellers/${encodeURIComponent(discordId)}`);
       
       // Check if response and response.data exist
       if (!response || !response.data) {
@@ -212,14 +213,15 @@ const PaymentForm = ({ onSuccess }) => {
           paypalWallet: ''
         });
       } else {
-        // Safely extract seller info with defaults
+        // Safely extract seller info with defaults (guard in case response.data is not a plain object)
+        const d = response.data && typeof response.data === 'object' ? response.data : {};
         setSellerInfo({
-          shomareSheba: response.data.sheba || '',
-          shomareKart: response.data.card || '',
-          name: response.data.name || '',
-          shomareTamas: response.data.phone || '',
-          wallet: response.data.wallet || '',
-          paypalWallet: response.data.paypalWallet || ''
+          shomareSheba: d.sheba != null ? String(d.sheba) : '',
+          shomareKart: d.card != null ? String(d.card) : '',
+          name: d.name != null ? String(d.name) : '',
+          shomareTamas: d.phone != null ? String(d.phone) : '',
+          wallet: d.wallet != null ? String(d.wallet) : '',
+          paypalWallet: (d.paypalWallet != null ? String(d.paypalWallet) : '')
         });
         setUserFound(true);
         setShowEdit(true);
@@ -447,7 +449,7 @@ const PaymentForm = ({ onSuccess }) => {
     }
   };
 
-  const showPaymentFields = formData.discordId !== '';
+  const showPaymentFields = (formData && formData.discordId) !== '';
 
   const handleCopyMessage = () => {
     if (message) {
@@ -475,9 +477,9 @@ const PaymentForm = ({ onSuccess }) => {
                 <Input
                   id="discordId"
                   name="discordId"
-                  value={formData.discordId}
+                  value={formData?.discordId ?? ''}
                   onChange={handleInputChange}
-                  onBlur={fetchSellerData}
+                  onBlur={() => { try { fetchSellerData(); } catch (e) { console.error('fetchSellerData error:', e); setLoadingSeller(false); } }}
                   required
                   autoComplete="off"
                   className="flex-1"
@@ -551,7 +553,7 @@ const PaymentForm = ({ onSuccess }) => {
                       <SelectValue placeholder="Select Payment Method" />
                     </SelectTrigger>
                     <SelectContent>
-                      {paymentInfoOptions.paymentMethods.map((method, index) => (
+                      {(paymentInfoOptions.paymentMethods || []).map((method, index) => (
                         <SelectItem key={index} value={method}>{method}</SelectItem>
                       ))}
                     </SelectContent>
@@ -581,7 +583,7 @@ const PaymentForm = ({ onSuccess }) => {
                       </SelectTrigger>
                       <SelectContent>
                         {paymentInfoOptions.dueDateOptions && paymentInfoOptions.dueDateOptions.length > 0 ? (
-                          paymentInfoOptions.dueDateOptions.map((option, index) => (
+                          (paymentInfoOptions.dueDateOptions || []).map((option, index) => (
                             <SelectItem key={index} value={`${option.title}|${option.hours}`}>
                               {option.title} ({option.hours} hours)
                             </SelectItem>
@@ -615,7 +617,7 @@ const PaymentForm = ({ onSuccess }) => {
                       <SelectValue placeholder="Select Payment Source" />
                     </SelectTrigger>
                     <SelectContent>
-                      {paymentInfoOptions.paymentSources.map((source, index) => (
+                      {(paymentInfoOptions.paymentSources || []).map((source, index) => (
                         <SelectItem key={index} value={source}>{source}</SelectItem>
                       ))}
                     </SelectContent>

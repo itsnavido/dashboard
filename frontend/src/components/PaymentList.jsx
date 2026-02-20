@@ -3,7 +3,7 @@ import api from '../services/api';
 import { formatNumber, isPaymentPaid } from '../utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-// Get payment status from Status column (R column)
+// Get payment status from Status column (Q column)
 function getPaymentStatus(statusValue) {
   if (!statusValue || statusValue === '') {
     return 'Unpaid';
@@ -99,6 +99,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [sortColumn, setSortColumn] = useState(null);
@@ -130,14 +131,23 @@ const PaymentList = ({ onEdit, onDelete }) => {
   const filteredPayments = useMemo(() => {
     let filtered = payments;
     
-    // Apply search filter
+    // Apply search filter (Discord ID, Payment ID/UUID, Realm/Payment Source)
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase().trim();
-      filtered = payments.filter(payment => 
+      filtered = payments.filter(payment =>
         (payment.userid && payment.userid.toLowerCase().includes(search)) ||
         (payment.uniqueID && payment.uniqueID.toLowerCase().includes(search)) ||
+        (payment.paymentSource && payment.paymentSource.toLowerCase().includes(search)) ||
         (String(payment.id).includes(search))
       );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(payment => {
+        const status = getPaymentStatus(payment.status);
+        return statusFilter === 'paid' ? status === 'Paid' : status !== 'Paid';
+      });
     }
     
     // Apply sorting
@@ -174,7 +184,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
     }
     
     return filtered;
-  }, [payments, searchTerm, sortColumn, sortDirection]);
+  }, [payments, searchTerm, statusFilter, sortColumn, sortDirection]);
 
   // Paginate filtered payments
   const paginatedPayments = useMemo(() => {
@@ -186,7 +196,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, sortColumn, sortDirection]);
+  }, [searchTerm, statusFilter, sortColumn, sortDirection]);
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -466,37 +476,44 @@ const PaymentList = ({ onEdit, onDelete }) => {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle>Payment List</CardTitle>
-              <CardDescription>
-                {loading ? 'Loading...' : `${filteredPayments.length} payment${filteredPayments.length !== 1 ? 's' : ''}`}
-                {searchTerm && ` (filtered from ${payments.length} total)`}
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchPayments}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Payment List</CardTitle>
+          <CardDescription>
+            {loading ? 'Loading...' : `${filteredPayments.length} payment${filteredPayments.length !== 1 ? 's' : ''}`}
+            {searchTerm && ` (filtered from ${payments.length} total)`}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by Discord ID or Payment ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by Discord ID, Payment ID, or Realm..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="default"
+              className="h-10"
+              onClick={fetchPayments}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
 
           {error && (
@@ -624,7 +641,7 @@ const PaymentList = ({ onEdit, onDelete }) => {
                             onClick={() => handleSort('total')}
                           >
                             <div className="flex items-center truncate">
-                              #4 Total
+                              #4 Amount*PPU
                               {getSortIcon('total')}
                             </div>
                           </TableHead>

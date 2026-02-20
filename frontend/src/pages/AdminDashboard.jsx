@@ -46,7 +46,7 @@ function AdminDashboard() {
 
   const quickMarkPaid = async (paymentId) => {
     try {
-      await api.patch(`/payments/${paymentId}`, { status: 'Paid' });
+      await api.patch(`/payments/${paymentId}/status`, { status: 'Paid' });
       toast.success('Payment marked as paid');
       // Refetch payments
       queryClient.invalidateQueries({ queryKey: ['payments'] });
