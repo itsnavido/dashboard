@@ -352,15 +352,12 @@ const PaymentForm = ({ onSuccess }) => {
         }
       }
       
-      // Payment duration = due date option label (e.g. "Instant (1 hours)")
+      // Payment duration = due date option title (Column D only, not Column E)
       let paymentDurationLabel = '';
       try {
         if (selectedDueDateOption) {
-          const [title, hoursStr] = selectedDueDateOption.split('|');
-          if (title && hoursStr) {
-            const hours = parseFloat(hoursStr);
-            paymentDurationLabel = !isNaN(hours) ? `${title} (${hours} hours)` : title;
-          }
+          const [title] = selectedDueDateOption.split('|');
+          paymentDurationLabel = title || '';
         }
       } catch (error) {
         console.error('Error formatting payment duration:', error);
@@ -585,7 +582,7 @@ const PaymentForm = ({ onSuccess }) => {
                         {paymentInfoOptions.dueDateOptions && paymentInfoOptions.dueDateOptions.length > 0 ? (
                           (paymentInfoOptions.dueDateOptions || []).map((option, index) => (
                             <SelectItem key={index} value={`${option.title}|${option.hours}`}>
-                              {option.title} ({option.hours} hours)
+                              {option.title}
                             </SelectItem>
                           ))
                         ) : (
