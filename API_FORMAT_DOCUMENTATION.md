@@ -32,14 +32,14 @@
   | K | 10 | `name` | Name | No | Seller's name (from Seller Info) |
   | L | 11 | `wallet` | Wallet | No | Wallet address (from Seller Info) |
   | M | 12 | `paypalAddress` | Paypal Address | No | Paypal Wallet (from Seller Info) |
-  | N | 13 | `uniqueID` | UUID | Auto-generated | 256-bit hash (64 hex characters) |
+  | N | 13 | `uniqueID` | UUID | Auto-generated | 12 hex characters |
   | O | 14 | `note` | Note | No | User note |
   | P | 15 | `status` | Status | No | Values: `Paid`, `Failed`, or empty (`Unpaid`) |
   | Q | 16 | `noteAdmin` | Admin Note | No | Admin-only note |
 
   ### Important Notes:
   - **Total Calculation**: The `total` field is always calculated as `amount * ppu` on the backend. Do not send a custom total value.
-  - **UUID Generation**: The `uniqueID` is automatically generated as a 256-bit SHA-256 hash (64 hex characters). Do not send this field.
+  - **UUID Generation**: The `uniqueID` is automatically generated as a 12-character hex string. Do not send this field.
   - **Timestamp**: The `time` field is automatically generated. Do not send this field.
   - **Status Field**: The `status` field is read-only in the API. It can be manually updated in the sheet but is not written by the API.
   - **Due Date**: Can be provided or will be calculated from Payment Info sheet (columns D:E).
@@ -115,7 +115,7 @@
   **Auto-generated Fields**:
   - `time`: Current timestamp
   - `total`: Calculated as `amount * ppu`
-  - `uniqueID`: 256-bit hash (64 hex characters)
+  - `uniqueID`: 12 hex characters
 
   **Response**:
   ```json
@@ -261,7 +261,7 @@
   - Column K (name): `[from Seller Info]`
   - Column L (wallet): `[from Seller Info]`
   - Column M (paypalAddress): `[from Seller Info]`
-  - Column N (uniqueID): `a1b2c3d4e5f6...` (64 hex chars, auto-generated)
+  - Column N (uniqueID): `a1b2c3d4e5f6` (12 hex chars, auto-generated)
   - Column O (note): `Payment for order #12345`
   - Column P (status): `` (empty, read-only)
   - Column Q (noteAdmin): `Verified by admin`

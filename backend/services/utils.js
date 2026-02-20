@@ -2,7 +2,7 @@
 const crypto = require('crypto');
 
 /**
- * Generate 256-bit hash-based unique ID (64 hex characters)
+ * Generate unique ID (12 hex characters)
  */
 function generateUniqueId() {
   // Create a hash from timestamp + random data
@@ -10,10 +10,10 @@ function generateUniqueId() {
   const randomData = crypto.randomBytes(16).toString('hex'); // 32 hex characters
   const combined = timestamp + randomData;
   
-  // Generate SHA-256 hash (256 bits = 32 bytes = 64 hex characters)
+  // Generate SHA-256 hash and take first 12 characters
   const hash = crypto.createHash('sha256').update(combined).digest('hex');
   
-  return hash; // Returns 64 hex characters (256 bits)
+  return hash.substring(0, 12); // Returns 12 hex characters
 }
 
 /**
