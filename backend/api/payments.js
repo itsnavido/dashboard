@@ -263,11 +263,12 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.note] = note || '';
     paymentData[cols.author] = adminName; // Column Q: Admin who submitted
     
-    // Add to payment sheet - create array in correct column order (17 columns: 0-16)
-    const rowData = new Array(17).fill('');
+    // Add to payment sheet - create array in correct column order (18 columns: 0-17)
+    // Column H (index 7) is empty, so we skip it
+    const rowData = new Array(18).fill('');
     Object.keys(paymentData).forEach(colIndex => {
       const idx = parseInt(colIndex);
-      if (!isNaN(idx) && idx < 17) {
+      if (!isNaN(idx) && idx < 18) {
         rowData[idx] = paymentData[colIndex];
       }
     });

@@ -26,8 +26,8 @@ module.exports = {
   },
 
   // Column mappings for Payment v2 sheet (0-indexed)
-  // Write A–Q (0–16). Status (R) is read-only for display.
-  // Headers: Timestamp, Due Date, Discord ID, Payment Time, Amount, PPU, Total, Payment Source, Payment Method, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note, Author [, Status]
+  // Write A–R (0–17). Status (S) is read-only for display.
+  // Headers: Timestamp, Due Date, Discord ID, Payment Time, Amount, PPU, Total, [Empty], Payment Source, Payment Method, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note, Author [, Status]
   paymentSheetColumns: {
     time: 0,              // Timestamp
     dueDate: 1,            // Due Date
@@ -36,17 +36,17 @@ module.exports = {
     amount: 4,             // Amount
     ppu: 5,                // PPU (Price Per Unit)
     total: 6,              // Total (amount * PPU)
-    paymentSource: 7,      // Payment Source
-    paymentMethod: 8,      // Payment Method
-    card: 9,               // Card Number
-    iban: 10,              // Iban (Sheba)
-    name: 11,              // Name
-    wallet: 12,            // Wallet
-    paypalAddress: 13,     // Paypal Address
-    uniqueID: 14,          // UUID
-    note: 15,              // Note
-    author: 16,            // Author (admin who submitted)
-    status: 17             // Status (read-only; we write up to Author)
+    paymentSource: 8,      // Payment Source (moved from H to I)
+    paymentMethod: 9,      // Payment Method (moved from I to J)
+    card: 10,              // Card Number (moved from J to K)
+    iban: 11,              // Iban (Sheba) (moved from K to L)
+    name: 12,              // Name (moved from L to M)
+    wallet: 13,            // Wallet (moved from M to N)
+    paypalAddress: 14,     // Paypal Address (moved from N to O)
+    uniqueID: 15,          // UUID (moved from O to P)
+    note: 16,              // Note (moved from P to Q)
+    author: 17,            // Author (admin who submitted) (moved from Q to R)
+    status: 18             // Status (read-only; we write up to Author)
   },
 
   // Column mappings for Seller Info sheet (0-indexed)

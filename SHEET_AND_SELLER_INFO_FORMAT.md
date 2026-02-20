@@ -59,7 +59,7 @@ This document describes the current structure of the **Payment v2** and **Seller
 
 ### How the app uses it
 
-- When a payment is created with a **Discord ID**, the app looks up that ID in **Seller Info** and fills Payment v2 columns J–N (Card, Iban, Name, Wallet, Paypal Address) from columns B–G.
+- When a payment is created with a **Discord ID**, the app looks up that ID in **Seller Info** and fills Payment v2 columns K–O (Card, Iban, Name, Wallet, Paypal Address) from columns B–G.
 - If the Discord ID is not in Seller Info, those payment fields stay empty until the user adds/edits the seller.
 
 ---
@@ -80,7 +80,7 @@ Used only to provide **options** for the Dashboard (dropdowns and due-date rules
 
 | Sheet        | Tab name     | Columns the app writes        | Columns the app only reads |
 |-------------|--------------|------------------------------|----------------------------|
-| Payment v2  | Payment v2   | A–Q (Timestamp through Author) | R (Status)                 |
+| Payment v2  | Payment v2   | A–R (Timestamp through Author) | S (Status)                 |
 | Seller Info | Seller Info  | A–G (create/update seller)   | —                          |
 | Payment Info| Payment Info | None                         | A, B, D, E                 |
 
