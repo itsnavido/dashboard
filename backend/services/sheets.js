@@ -234,18 +234,18 @@ async function getPaymentRowsRaw() {
       throw new Error(`Sheet "${sheetName}" not found`);
     }
 
-    // Read data starting from row 4 (skip header rows 1-3). A4:Q = 17 columns (Status in Q is read-only for display).
+    // Read data starting from row 4 (skip header rows 1-3). A4:R = 18 columns (Author in Q, Status in R is read-only).
     const response = await client.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A4:Q`,
+      range: `${sheetName}!A4:R`,
     });
 
     const rows = response.data.values || [];
     
     // Convert to format compatible with google-spreadsheet row objects
     return rows.map((rowData, index) => {
-      // Pad row to 17 columns (A–Q; we only write A–P)
-      const paddedRow = new Array(17).fill('').map((_, i) => rowData[i] || '');
+      // Pad row to 18 columns (A–R; we write A–Q, Status at R is read-only)
+      const paddedRow = new Array(18).fill('').map((_, i) => rowData[i] || '');
       
       return {
         _rawData: paddedRow,
@@ -295,14 +295,14 @@ async function addPaymentRowRaw(rowData) {
       throw new Error(`Sheet "${sheetName}" not found`);
     }
 
-    // Append row using raw API - only up to Note (column P = 16 cells). No extra cells.
-    const rowDataTrimmed = Array.isArray(rowData) ? rowData.slice(0, 16) : [];
-    const padded = new Array(16).fill('');
-    rowDataTrimmed.forEach((v, i) => { if (i < 16) padded[i] = v; });
+    // Append row using raw API - up to Author (column Q = 17 cells). Status (R) is read-only.
+    const rowDataTrimmed = Array.isArray(rowData) ? rowData.slice(0, 17) : [];
+    const padded = new Array(17).fill('');
+    rowDataTrimmed.forEach((v, i) => { if (i < 17) padded[i] = v; });
 
     await client.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A:P`, // Only columns A–P (Timestamp through Note)
+      range: `${sheetName}!A:Q`, // Columns A–Q (Timestamp through Author)
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
@@ -485,10 +485,10 @@ async function updatePaymentRowRaw(rowIndex, updateData) {
       throw new Error(`Sheet "${sheetName}" not found`);
     }
 
-    // Convert column indices to A1 notation (A=0, B=1, ..., Q=16). We write only 0-15 on create; 16 is Status (read/write on update).
+    // Convert column indices to A1 notation (A=0, B=1, ..., Q=16, R=17). We write 0-16 on create; 17 is Status (read/write on update).
     const columnToLetter = (col) => {
-      if (col < 0 || col > 16) {
-        console.warn(`Column index ${col} is out of range (0-16)`);
+      if (col < 0 || col > 17) {
+        console.warn(`Column index ${col} is out of range (0-17)`);
         return null;
       }
       return String.fromCharCode(65 + col);
@@ -498,7 +498,7 @@ async function updatePaymentRowRaw(rowIndex, updateData) {
     const updateRequests = Object.keys(updateData)
       .filter(colIndex => {
         const col = parseInt(colIndex);
-        return !isNaN(col) && col >= 0 && col <= 16;
+        return !isNaN(col) && col >= 0 && col <= 17;
       })
       .map(colIndex => {
         const col = parseInt(colIndex);

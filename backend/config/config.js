@@ -26,13 +26,13 @@ module.exports = {
   },
 
   // Column mappings for Payment v2 sheet (0-indexed)
-  // Write only A–P (0–15). Status (Q) is read-only for display.
-  // Headers: Timestamp, Due Date, Discord ID, Payment Time, Amount, PPU, Total, Payment Source, Payment Method, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note [, Status]
+  // Write A–Q (0–16). Status (R) is read-only for display.
+  // Headers: Timestamp, Due Date, Discord ID, Payment Time, Amount, PPU, Total, Payment Source, Payment Method, Card Number, Iban, Name, Wallet, Paypal Address, UUID, Note, Author [, Status]
   paymentSheetColumns: {
     time: 0,              // Timestamp
     dueDate: 1,            // Due Date
     userid: 2,             // Discord ID
-    paymentTime: 3,        // Payment Time (same as Timestamp)
+    paymentTime: 3,        // Payment Time (Due Date option)
     amount: 4,             // Amount
     ppu: 5,                // PPU (Price Per Unit)
     total: 6,              // Total (amount * PPU)
@@ -44,8 +44,9 @@ module.exports = {
     wallet: 12,            // Wallet
     paypalAddress: 13,     // Paypal Address
     uniqueID: 14,          // UUID
-    note: 15,              // Note (last column we write)
-    status: 16             // Status (read-only; we never write past Note)
+    note: 15,              // Note
+    author: 16,            // Author (admin who submitted)
+    status: 17             // Status (read-only; we write up to Author)
   },
 
   // Column mappings for Seller Info sheet (0-indexed)

@@ -49,6 +49,7 @@ router.get('/', requireAuth, async (req, res) => {
         paypalAddress: getValue(cols.paypalAddress),
         uniqueID: getValue(cols.uniqueID),
         note: getValue(cols.note),
+        author: getValue(cols.author),
         paymentTime: getValue(cols.paymentTime),
         status: getValue(cols.status),
         price: getValue(cols.ppu),
@@ -149,6 +150,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       paypalAddress: getValue(cols.paypalAddress),
       uniqueID: getValue(cols.uniqueID),
       note: getValue(cols.note),
+      author: getValue(cols.author),
       paymentTime: getValue(cols.paymentTime),
       status: getValue(cols.status),
       price: getValue(cols.ppu),
@@ -236,6 +238,7 @@ router.post('/', requireAuth, async (req, res) => {
     
     const time = utils.formatDate();
     const uniqueID = utils.generateUniqueId();
+    const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
     
     // Prepare payment data for sheet - Payment v2 structure
     const cols = config.paymentSheetColumns;
@@ -258,12 +261,13 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.paypalAddress] = paypalAddress || ''; // Paypal Address comes from sellerInfo.paypalWallet (sent as paypalAddress)
     paymentData[cols.uniqueID] = uniqueID;
     paymentData[cols.note] = note || '';
+    paymentData[cols.author] = adminName; // Column Q: Admin who submitted
     
-    // Add to payment sheet - create array in correct column order (16 columns: 0-15)
-    const rowData = new Array(16).fill('');
+    // Add to payment sheet - create array in correct column order (17 columns: 0-16)
+    const rowData = new Array(17).fill('');
     Object.keys(paymentData).forEach(colIndex => {
       const idx = parseInt(colIndex);
-      if (!isNaN(idx) && idx < 16) {
+      if (!isNaN(idx) && idx < 17) {
         rowData[idx] = paymentData[colIndex];
       }
     });
@@ -273,7 +277,6 @@ router.post('/', requireAuth, async (req, res) => {
     
     // Send Discord webhook (with legacy format for compatibility)
     try {
-      const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
       await discord.sendDiscordMessage({
         discordId,
         amount: amountNum,
