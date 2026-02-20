@@ -176,6 +176,7 @@ router.post('/', requireAuth, async (req, res) => {
       amount,
       ppu,
       dueDate,
+      paymentTime: paymentTimeFromForm,
       paymentDuration: paymentDurationOption,
       paymentSource,
       paymentMethod,
@@ -245,7 +246,7 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.time] = time;
     paymentData[cols.dueDate] = dueDateFormatted;
     paymentData[cols.userid] = discordId;
-    paymentData[cols.paymentTime] = time; // Payment Time is same as Timestamp
+    paymentData[cols.paymentTime] = paymentTimeFromForm ? String(paymentTimeFromForm).trim() : time; // Column D: from form, else timestamp
     paymentData[cols.amount] = amount || '';
     paymentData[cols.ppu] = ppu || '';
     paymentData[cols.total] = total.toString();
