@@ -21,8 +21,10 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     paymentSource: '',
     paymentMethod: '',
     card: '',
+    iban: '',
     name: '',
     wallet: '',
+    paypalAddress: '',
     note: '',
   });
 
@@ -64,8 +66,10 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
         paymentSource: payment.paymentSource || '',
         paymentMethod: payment.paymentMethod || '',
         card: payment.card || '',
+        iban: payment.iban || '',
         name: payment.name || '',
         wallet: payment.wallet || '',
+        paypalAddress: payment.paypalAddress || '',
         note: payment.note || '',
       });
     }
@@ -301,7 +305,7 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="card">Card</Label>
+              <Label htmlFor="card">Card Number</Label>
               <Input
                 type="text"
                 id="card"
@@ -312,7 +316,18 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="iban">Sheba / Iban</Label>
+              <Input
+                type="text"
+                id="iban"
+                name="iban"
+                value={formData.iban}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
               <Input
                 type="text"
                 id="name"
@@ -329,6 +344,17 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
                 id="wallet"
                 name="wallet"
                 value={formData.wallet}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paypalAddress">Paypal</Label>
+              <Input
+                type="text"
+                id="paypalAddress"
+                name="paypalAddress"
+                value={formData.paypalAddress}
                 onChange={handleChange}
               />
             </div>

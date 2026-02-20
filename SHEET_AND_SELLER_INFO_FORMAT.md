@@ -15,7 +15,7 @@ This document describes the current structure of the **Payment v2** and **Seller
 | A   | Timestamp      | When the payment was created   | Yes              | `DD/MM/YYYY HH:MM:SS` (GMT+3:30) |
 | B   | Due Date       | When payment is due            | Yes              | `DD/MM/YYYY HH:MM:SS` |
 | C   | Discord ID     | User’s Discord ID              | Yes              | |
-| D   | Payment Time   | From form (optional)           | Yes              | Form field; if empty, app uses submit time. Format: `DD/MM/YYYY HH:MM:SS` |
+| D   | Payment Time   | Due Date option                | Yes              | Selected due date option label (e.g. `Instant (1 hours)`). Not a timestamp. |
 | E   | Amount         | Quantity / amount               | Yes              | Numeric |
 | F   | PPU            | Price per unit                  | Yes              | Numeric |
 | G   | Total          | Amount × PPU                    | Yes              | Auto-calculated by app |

@@ -20,8 +20,7 @@ const PaymentForm = ({ onSuccess }) => {
     paymentSource: '',
     paymentMethod: '',
     note: '',
-    dueDate: '',
-    paymentTime: ''
+    dueDate: ''
   });
 
   const [sellerInfo, setSellerInfo] = useState({
@@ -376,8 +375,7 @@ const PaymentForm = ({ onSuccess }) => {
         ppu: formData.ppu.replace(/,/g, ''),
         total: formData.total.replace(/,/g, ''),
         dueDate: finalDueDate, // Due date calculated from Payment Info hours
-        paymentTime: (formData.paymentTime && String(formData.paymentTime).trim()) || '', // Column D in sheet
-        paymentDuration: paymentDurationLabel, // Due date option for webhook
+        paymentDuration: paymentDurationLabel, // Due date option (also written to column D in sheet)
         paymentSource: formData.paymentSource,
         paymentMethod: formData.paymentMethod,
         card: sellerInfo.shomareKart,
@@ -415,8 +413,7 @@ const PaymentForm = ({ onSuccess }) => {
           paymentSource: '',
           paymentMethod: '',
           note: '',
-          dueDate: '',
-          paymentTime: ''
+          dueDate: ''
         });
         // Reset due date option to first option if available
         if (paymentInfoOptions.dueDateOptions && paymentInfoOptions.dueDateOptions.length > 0) {
@@ -608,18 +605,6 @@ const PaymentForm = ({ onSuccess }) => {
                       placeholder="Due date will be calculated"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentTime">Payment Time (Column D)</Label>
-                    <Input
-                      id="paymentTime"
-                      name="paymentTime"
-                      value={formData.paymentTime ?? ''}
-                      onChange={handleInputChange}
-                      placeholder="DD/MM/YYYY HH:MM:SS (optional – defaults to submit time)"
-                      autoComplete="off"
-                    />
-                  </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="paymentSource">Payment Source</Label>
                   <Select
