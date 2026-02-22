@@ -285,6 +285,7 @@ router.post('/', requireAuth, async (req, res) => {
         gheymat: total,
         paymentDuration: paymentDurationOption || '',
         realm: paymentSource || '', // Payment Source sent as Realm
+        paymentMethod: paymentMethod || '',
         admin: adminName,
         note: note || '',
         time,
