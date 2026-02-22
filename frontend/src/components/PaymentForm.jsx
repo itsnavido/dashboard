@@ -306,6 +306,23 @@ const PaymentForm = ({ onSuccess }) => {
     e.preventDefault();
     if (isSubmitting) return;
 
+    // Validate required Select fields (native `required` doesn't work on Radix UI selects)
+    if (!selectedDueDateOption) {
+      setMessage('Please select a Due Date Option.');
+      setMessageType('error');
+      return;
+    }
+    if (!formData.paymentMethod) {
+      setMessage('Please select a Payment Method.');
+      setMessageType('error');
+      return;
+    }
+    if (!formData.paymentSource) {
+      setMessage('Please select a Payment Source.');
+      setMessageType('error');
+      return;
+    }
+
     setIsSubmitting(true);
     setMessage('');
     setMessageType('success');
