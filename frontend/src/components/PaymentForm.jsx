@@ -512,6 +512,30 @@ const PaymentForm = ({ onSuccess }) => {
             {showPaymentFields && (
               <>
                 <div className="space-y-2">
+                    <Label htmlFor="dueDateOption">Due Date Option</Label>
+                    <Select
+                      value={selectedDueDateOption}
+                      onValueChange={setSelectedDueDateOption}
+                      disabled={loadingPaymentInfo || !paymentInfoOptions.dueDateOptions || paymentInfoOptions.dueDateOptions.length === 0}
+                    >
+                      <SelectTrigger id="dueDateOption">
+                        <SelectValue placeholder="Select due date option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentInfoOptions.dueDateOptions && paymentInfoOptions.dueDateOptions.length > 0 ? (
+                          (paymentInfoOptions.dueDateOptions || []).map((option, index) => (
+                            <SelectItem key={index} value={`${option.title}|${option.hours}`}>
+                              {option.title}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="__no_options__" disabled>No options available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="amount">Amount</Label>
                   <Input
                     id="amount"
@@ -568,29 +592,6 @@ const PaymentForm = ({ onSuccess }) => {
                   />
                 </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="dueDateOption">Due Date Option</Label>
-                    <Select
-                      value={selectedDueDateOption}
-                      onValueChange={setSelectedDueDateOption}
-                      disabled={loadingPaymentInfo || !paymentInfoOptions.dueDateOptions || paymentInfoOptions.dueDateOptions.length === 0}
-                    >
-                      <SelectTrigger id="dueDateOption">
-                        <SelectValue placeholder="Select due date option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {paymentInfoOptions.dueDateOptions && paymentInfoOptions.dueDateOptions.length > 0 ? (
-                          (paymentInfoOptions.dueDateOptions || []).map((option, index) => (
-                            <SelectItem key={index} value={`${option.title}|${option.hours}`}>
-                              {option.title}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="" disabled>No options available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="dueDate">Due Date (Calculated)</Label>
                     <Input
