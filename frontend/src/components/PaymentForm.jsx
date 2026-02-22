@@ -564,6 +564,17 @@ const PaymentForm = ({ onSuccess }) => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="total">Total</Label>
+                  <Input
+                    id="total"
+                    name="total"
+                    value={formData.total}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="paymentMethod">Payment Method</Label>
                   <Select
                     value={formData.paymentMethod}
@@ -581,28 +592,6 @@ const PaymentForm = ({ onSuccess }) => {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="total">Total</Label>
-                  <Input
-                    id="total"
-                    name="total"
-                    value={formData.total}
-                    readOnly
-                    className="bg-muted cursor-not-allowed"
-                  />
-                </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="dueDate">Due Date (Calculated)</Label>
-                    <Input
-                      id="dueDate"
-                      name="dueDate"
-                      value={formData.dueDate}
-                      readOnly
-                      className="bg-muted cursor-not-allowed"
-                      placeholder="Due date will be calculated"
-                    />
-                  </div>
                 <div className="space-y-2">
                   <Label htmlFor="paymentSource">Payment Source</Label>
                   <Select
@@ -628,6 +617,18 @@ const PaymentForm = ({ onSuccess }) => {
                     name="note"
                     value={formData.note}
                     onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Due Date (Calculated)</Label>
+                  <Input
+                    id="dueDate"
+                    name="dueDate"
+                    value={formData.dueDate}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
+                    placeholder="Due date will be calculated"
                   />
                 </div>
 
