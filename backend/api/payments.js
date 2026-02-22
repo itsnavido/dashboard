@@ -285,7 +285,7 @@ router.post('/', requireAuth, async (req, res) => {
         gheymat: total,
         paymentDuration: paymentDurationOption || '',
         realm: paymentSource || '', // Payment Source sent as Realm
-        paymentMethod: paymentMethod || '',
+        currency: paymentMethod || '',
         admin: adminName,
         note: note || '',
         time,
@@ -502,6 +502,7 @@ router.put('/:id', requireAuth, async (req, res) => {
       sheba: (req.body.iban !== undefined ? req.body.iban : currentPayment.iban) || '',
       price: (req.body.ppu !== undefined ? req.body.ppu : currentPayment.ppu) || '',
       gheymat: (req.body.total !== undefined ? req.body.total : currentPayment.total) || '',
+      currency: (req.body.paymentMethod !== undefined ? req.body.paymentMethod : currentPayment.paymentMethod) || '',
       admin: await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown'
     };
     
@@ -631,7 +632,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       ppu: getValue(cols.ppu),
       total: getValue(cols.total),
       paymentSource: getValue(cols.paymentSource),
-      paymentMethod: getValue(cols.paymentMethod),
+      currency: getValue(cols.paymentMethod),
       card: getValue(cols.card),
       iban: getValue(cols.iban),
       name: getValue(cols.name),
