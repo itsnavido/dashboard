@@ -54,7 +54,7 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
       const totalValue = payment.total || payment.gheymat || '';
       const formattedTotal = totalValue ? formatNumber(parseFloat(totalValue.toString().replace(/,/g, '')) || 0) : '';
       const ppuValue = payment.ppu || payment.price || '';
-      const formattedPpu = ppuValue ? formatNumber(parseFloat(ppuValue.toString().replace(/,/g, '')) || 0) : '';
+      const formattedPpu = ppuValue ? formatNumber(parseFloat(ppuValue.toString().replace(/,/g, '')) || 0, true, 6) : '';
       
       setFormData({
         time: payment.time || '',
@@ -107,7 +107,7 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     
     if (value && !isNaN(parseFloat(value))) {
       const numValue = parseFloat(value);
-      value = formatNumber(numValue, true);
+      value = formatNumber(numValue, true, 6);
     } else if (value === '') {
       // Allow empty value
     } else {

@@ -1,16 +1,22 @@
 // Utility functions
 
-export function formatNumber(value, allowDecimals = true) {
+/**
+ * @param {number|string} value
+ * @param {boolean} allowDecimals
+ * @param {number} maxFractionDigits - default 2 for amounts/totals; use 6 for PPU
+ */
+export function formatNumber(value, allowDecimals = true, maxFractionDigits = 2) {
   if (value === '' || value === null || value === undefined) return '';
   const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
   if (isNaN(numValue)) return '';
   
   if (allowDecimals) {
-    // Check if the number has decimal places
     const hasDecimals = numValue % 1 !== 0;
+    // Legacy: at least 2 fraction digits when max is 2 (amounts/totals). PPU (max 6) uses min 0 so precision is not padded away.
+    const minFrac = hasDecimals && maxFractionDigits === 2 ? 2 : 0;
     return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: hasDecimals ? 2 : 0,
-      maximumFractionDigits: 2
+      minimumFractionDigits: minFrac,
+      maximumFractionDigits: maxFractionDigits
     }).format(numValue);
   } else {
     return new Intl.NumberFormat('en-US', {
