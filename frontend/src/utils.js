@@ -1,22 +1,22 @@
 // Utility functions
 
+const MAX_DECIMALS = 20; // ECMAScript max for Intl; avoids rounding amount/PPU/total to 2 places
+
 /**
  * @param {number|string} value
  * @param {boolean} allowDecimals
- * @param {number} maxFractionDigits - default 2 for amounts/totals; use 6 for PPU
+ * @param {number} maxFractionDigits - cap fraction digits (default full precision, no rounding to 2 decimals)
  */
-export function formatNumber(value, allowDecimals = true, maxFractionDigits = 2) {
+export function formatNumber(value, allowDecimals = true, maxFractionDigits = MAX_DECIMALS) {
   if (value === '' || value === null || value === undefined) return '';
   const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
   if (isNaN(numValue)) return '';
   
   if (allowDecimals) {
-    const hasDecimals = numValue % 1 !== 0;
-    // Legacy: at least 2 fraction digits when max is 2 (amounts/totals). PPU (max 6) uses min 0 so precision is not padded away.
-    const minFrac = hasDecimals && maxFractionDigits === 2 ? 2 : 0;
+    const cap = Math.min(MAX_DECIMALS, Math.max(0, maxFractionDigits));
     return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: minFrac,
-      maximumFractionDigits: maxFractionDigits
+      minimumFractionDigits: 0,
+      maximumFractionDigits: cap
     }).format(numValue);
   } else {
     return new Intl.NumberFormat('en-US', {

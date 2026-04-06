@@ -51,16 +51,27 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
 
   useEffect(() => {
     if (payment) {
-      const totalValue = payment.total || payment.gheymat || '';
-      const formattedTotal = totalValue ? formatNumber(parseFloat(totalValue.toString().replace(/,/g, '')) || 0) : '';
-      const ppuValue = payment.ppu || payment.price || '';
-      const formattedPpu = ppuValue ? formatNumber(parseFloat(ppuValue.toString().replace(/,/g, '')) || 0, true, 6) : '';
+      const totalValue = payment.total ?? payment.gheymat;
+      const formattedTotal =
+        totalValue !== '' && totalValue != null
+          ? formatNumber(parseFloat(String(totalValue).replace(/,/g, '')) || 0)
+          : '';
+      const ppuValue = payment.ppu ?? payment.price;
+      const formattedPpu =
+        ppuValue !== '' && ppuValue != null
+          ? formatNumber(parseFloat(String(ppuValue).replace(/,/g, '')) || 0)
+          : '';
+      const amtRaw = payment.amount;
+      const formattedAmount =
+        amtRaw !== '' && amtRaw != null
+          ? formatNumber(parseFloat(String(amtRaw).replace(/,/g, '')) || 0)
+          : '';
       
       setFormData({
         time: payment.time || '',
         dueDate: payment.dueDate || '',
         userid: payment.userid || '',
-        amount: payment.amount || '',
+        amount: formattedAmount,
         ppu: formattedPpu,
         total: formattedTotal,
         paymentSource: payment.paymentSource || '',
@@ -107,7 +118,7 @@ const PaymentEdit = ({ payment, onCancel, onSuccess }) => {
     
     if (value && !isNaN(parseFloat(value))) {
       const numValue = parseFloat(value);
-      value = formatNumber(numValue, true, 6);
+      value = formatNumber(numValue, true);
     } else if (value === '') {
       // Allow empty value
     } else {

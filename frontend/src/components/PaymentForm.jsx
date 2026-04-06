@@ -289,7 +289,7 @@ const PaymentForm = ({ onSuccess }) => {
       const numValue = parseFloat(value);
       setFormData(prev => ({
         ...prev,
-        ppu: formatNumber(numValue, true, 6)
+        ppu: formatNumber(numValue, true)
       }));
     }
   };
