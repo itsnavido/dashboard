@@ -48,13 +48,15 @@ function calculateGheymat(paymentDuration, amount, price) {
 }
 
 /**
- * Format number with commas
+ * Format number with thousand separators; preserve decimals (do not round to integer).
  */
 function formatNumber(value) {
-  return new Intl.NumberFormat('en-US', { 
-    minimumFractionDigits: 0, 
-    maximumFractionDigits: 0 
-  }).format(value);
+  const n = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
+  if (isNaN(n)) return '';
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 20
+  }).format(n);
 }
 
 module.exports = {
