@@ -3,12 +3,20 @@ import api from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from './EmptyState';
 import { Search, Loader2, CheckCircle2, XCircle, UserPlus, UserCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+
+const WALLET_TYPE_NONE = '__wallet_type_none__';
+const WALLET_TYPE_OPTIONS = [
+  'Personal Wallet',
+  'Iranian Exchange',
+  'non-Iranian Exchange'
+];
 
 const SellerManagement = () => {
   const [searchDiscordId, setSearchDiscordId] = useState('');
@@ -23,7 +31,8 @@ const SellerManagement = () => {
     name: '',
     phone: '',
     wallet: '',
-    paypalWallet: ''
+    paypalWallet: '',
+    walletType: ''
   });
 
   const handleSearch = async (e) => {
@@ -50,7 +59,8 @@ const SellerManagement = () => {
           name: '',
           phone: '',
           wallet: '',
-          paypalWallet: ''
+          paypalWallet: '',
+          walletType: ''
         });
       } else {
         setSellerInfo({ discordId, exists: true });
@@ -60,7 +70,8 @@ const SellerManagement = () => {
           name: response.data.name || '',
           phone: response.data.phone || '',
           wallet: response.data.wallet || '',
-          paypalWallet: response.data.paypalWallet || ''
+          paypalWallet: response.data.paypalWallet || '',
+          walletType: response.data.walletType != null ? String(response.data.walletType) : ''
         });
       }
     } catch (err) {
@@ -73,7 +84,8 @@ const SellerManagement = () => {
           name: '',
           phone: '',
           wallet: '',
-          paypalWallet: ''
+          paypalWallet: '',
+          walletType: ''
         });
       } else {
         setError(err.response?.data?.error || 'Failed to fetch seller information');
@@ -111,7 +123,8 @@ const SellerManagement = () => {
         name: formData.name,
         phone: formData.phone,
         wallet: formData.wallet,
-        paypalWallet: formData.paypalWallet
+        paypalWallet: formData.paypalWallet,
+        walletType: formData.walletType || ''
       });
 
       const successMsg = sellerInfo.exists 
@@ -143,7 +156,8 @@ const SellerManagement = () => {
       name: '',
       phone: '',
       wallet: '',
-      paypalWallet: ''
+      paypalWallet: '',
+      walletType: ''
     });
     setError('');
     setSuccess('');
@@ -311,6 +325,31 @@ const SellerManagement = () => {
                         onChange={handleInputChange}
                         autoComplete="off"
                       />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="walletType">Wallet Type</Label>
+                      <Select
+                        value={formData.walletType ? formData.walletType : WALLET_TYPE_NONE}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            walletType: v === WALLET_TYPE_NONE ? '' : v
+                          }))
+                        }
+                      >
+                        <SelectTrigger id="walletType">
+                          <SelectValue placeholder="Not set" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={WALLET_TYPE_NONE}>Not set</SelectItem>
+                          {WALLET_TYPE_OPTIONS.map((opt) => (
+                            <SelectItem key={opt} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

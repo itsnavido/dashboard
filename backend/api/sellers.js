@@ -7,6 +7,15 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+function validateWalletType(walletType) {
+  const s = walletType == null ? '' : String(walletType).trim();
+  if (!s) return { value: '' };
+  if (!config.sellerWalletTypes.includes(s)) {
+    return { error: 'Invalid wallet type' };
+  }
+  return { value: s };
+}
+
 // Get seller info by Discord ID
 router.get('/:discordId', async (req, res) => {
   try {
@@ -19,18 +28,20 @@ router.get('/:discordId', async (req, res) => {
     }
     
     // Try Seller Info sheet first
-    // Seller Info structure: userid (col 0), card (col 1), sheba (col 2), name (col 3), phone (col 4), wallet (col 5), paypalWallet (col 6)
+    const si = config.sellerInfoColumns;
+    // Seller Info: userid, card, sheba, name, phone, wallet, paypalWallet, walletType
     let row = await sheets.findRowByValue(config.sheetNames.sellerInfo, 0, discordId);
     
     if (row) {
       const rawData = row._rawData || [];
       const sellerInfo = {
-        card: rawData[1] || '',
-        sheba: rawData[2] || '',
-        name: rawData[3] || '',
-        phone: rawData[4] || '',
-        wallet: rawData[5] || '',
-        paypalWallet: rawData[6] || ''
+        card: rawData[si.card] || '',
+        sheba: rawData[si.sheba] || '',
+        name: rawData[si.name] || '',
+        phone: rawData[si.phone] || '',
+        wallet: rawData[si.wallet] || '',
+        paypalWallet: rawData[si.paypalWallet] || '',
+        walletType: rawData[si.walletType] || ''
       };
       
       cache.setSellerInfo(discordId, sellerInfo);
@@ -49,7 +60,8 @@ router.get('/:discordId', async (req, res) => {
           name: rawData[4] || '', // Column E (index 4)
           phone: rawData[5] || '', // Column F (index 5)
           wallet: rawData[6] || '', // Column G (index 6)
-          paypalWallet: rawData[7] || '' // Column H (index 7) - fallback sheet may have different structure
+          paypalWallet: rawData[7] || '', // Column H (index 7)
+          walletType: rawData[8] || '' // Column I (index 8) when extended
         };
         
         cache.setSellerInfo(discordId, sellerInfo);
@@ -70,28 +82,43 @@ router.get('/:discordId', async (req, res) => {
 // Create or update seller info
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { discordId, card, sheba, name, phone, wallet, paypalWallet } = req.body;
+    const { discordId, card, sheba, name, phone, wallet, paypalWallet, walletType } = req.body;
     
     if (!discordId) {
       return res.status(400).json({ error: 'Discord ID is required' });
     }
+
+    const wtResult = validateWalletType(walletType);
+    if (wtResult.error) {
+      return res.status(400).json({ error: wtResult.error });
+    }
+    const walletTypeNorm = wtResult.value;
     
+    const si = config.sellerInfoColumns;
     // Check if seller exists
     let row = await sheets.findRowByValue(config.sheetNames.sellerInfo, 0, discordId);
     
     if (row) {
-      // Update existing - Seller Info: userid (0), card (1), sheba (2), name (3), phone (4), wallet (5), paypalWallet (6)
       await sheets.updateRow(row, {
-        1: card || '',
-        2: sheba || '',
-        3: name || '',
-        4: phone || '',
-        5: wallet || '',
-        6: paypalWallet || ''
+        [si.card]: card || '',
+        [si.sheba]: sheba || '',
+        [si.name]: name || '',
+        [si.phone]: phone || '',
+        [si.wallet]: wallet || '',
+        [si.paypalWallet]: paypalWallet || '',
+        [si.walletType]: walletTypeNorm
       });
     } else {
-      // Create new - Seller Info structure: userid, card, sheba, name, phone, wallet, paypalWallet
-      const rowData = [discordId, card || '', sheba || '', name || '', phone || '', wallet || '', paypalWallet || ''];
+      const rowData = [
+        discordId,
+        card || '',
+        sheba || '',
+        name || '',
+        phone || '',
+        wallet || '',
+        paypalWallet || '',
+        walletTypeNorm
+      ];
       const sheet = await sheets.getSheet(config.sheetNames.sellerInfo);
       await sheet.addRow(rowData);
     }

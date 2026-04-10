@@ -11,6 +11,13 @@ import { Separator } from '@/components/ui/separator';
 import { Copy, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const WALLET_TYPE_NONE = '__wallet_type_none__';
+const WALLET_TYPE_OPTIONS = [
+  'Personal Wallet',
+  'Iranian Exchange',
+  'non-Iranian Exchange'
+];
+
 const PaymentForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     discordId: '',
@@ -29,7 +36,8 @@ const PaymentForm = ({ onSuccess }) => {
     name: '',
     shomareTamas: '',
     wallet: '',
-    paypalWallet: ''
+    paypalWallet: '',
+    walletType: ''
   });
 
   const [paymentInfoOptions, setPaymentInfoOptions] = useState({
@@ -210,18 +218,21 @@ const PaymentForm = ({ onSuccess }) => {
           name: '',
           shomareTamas: '',
           wallet: '',
-          paypalWallet: ''
+          paypalWallet: '',
+          walletType: ''
         });
       } else {
         // Safely extract seller info with defaults (guard in case response.data is not a plain object)
         const d = response.data && typeof response.data === 'object' ? response.data : {};
+        const wt = d.walletType != null ? String(d.walletType) : '';
         setSellerInfo({
           shomareSheba: d.sheba != null ? String(d.sheba) : '',
           shomareKart: d.card != null ? String(d.card) : '',
           name: d.name != null ? String(d.name) : '',
           shomareTamas: d.phone != null ? String(d.phone) : '',
           wallet: d.wallet != null ? String(d.wallet) : '',
-          paypalWallet: (d.paypalWallet != null ? String(d.paypalWallet) : '')
+          paypalWallet: (d.paypalWallet != null ? String(d.paypalWallet) : ''),
+          walletType: WALLET_TYPE_OPTIONS.includes(wt) ? wt : ''
         });
         setUserFound(true);
         setShowEdit(true);
@@ -243,7 +254,8 @@ const PaymentForm = ({ onSuccess }) => {
           name: '',
           shomareTamas: '',
           wallet: '',
-          paypalWallet: ''
+          paypalWallet: '',
+          walletType: ''
         });
       } else {
         setMessage('خطا در دریافت اطلاعات کاربر');
@@ -339,7 +351,8 @@ const PaymentForm = ({ onSuccess }) => {
             name: sellerInfo.name,
             phone: sellerInfo.shomareTamas,
             wallet: sellerInfo.wallet || '',
-            paypalWallet: sellerInfo.paypalWallet || ''
+            paypalWallet: sellerInfo.paypalWallet || '',
+            walletType: sellerInfo.walletType || ''
           });
         } catch (sellerError) {
           console.warn('Failed to update seller info, but continuing with payment submission:', sellerError);
@@ -442,7 +455,8 @@ const PaymentForm = ({ onSuccess }) => {
         name: '',
         shomareTamas: '',
         wallet: '',
-        paypalWallet: ''
+        paypalWallet: '',
+        walletType: ''
       });
       setShowEdit(false);
       setShowAdd(false);
@@ -773,6 +787,36 @@ const PaymentForm = ({ onSuccess }) => {
               autoComplete="off"
               disabled={!showEdit && !showAdd}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="walletType">Wallet Type</Label>
+            <Select
+              value={
+                sellerInfo.walletType && WALLET_TYPE_OPTIONS.includes(sellerInfo.walletType)
+                  ? sellerInfo.walletType
+                  : WALLET_TYPE_NONE
+              }
+              onValueChange={(v) =>
+                setSellerInfo((prev) => ({
+                  ...prev,
+                  walletType: v === WALLET_TYPE_NONE ? '' : v
+                }))
+              }
+              disabled={!showEdit && !showAdd}
+            >
+              <SelectTrigger id="walletType">
+                <SelectValue placeholder="Not set" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={WALLET_TYPE_NONE}>Not set</SelectItem>
+                {WALLET_TYPE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

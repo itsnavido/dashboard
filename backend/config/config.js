@@ -50,7 +50,7 @@ module.exports = {
   },
 
   // Column mappings for Seller Info sheet (0-indexed)
-  // Headers: Discord ID, Shomare Kart, ShomareSheba, Name, Shomare Tamas, Wallet, Paypal Wallet
+  // Headers: Discord ID, Shomare Kart, ShomareSheba, Name, Shomare Tamas, Wallet, Paypal Wallet, Wallet Type
   sellerInfoColumns: {
     discordId: 0,         // Discord ID
     card: 1,              // Shomare Kart
@@ -58,8 +58,16 @@ module.exports = {
     name: 3,              // Name
     phone: 4,             // Shomare Tamas
     wallet: 5,            // Wallet
-    paypalWallet: 6       // Paypal Wallet
+    paypalWallet: 6,      // Paypal Wallet
+    walletType: 7        // Wallet Type (column H)
   },
+
+  // Allowed Seller Info wallet type values (exact strings); empty string means unset
+  sellerWalletTypes: [
+    'Personal Wallet',
+    'Iranian Exchange',
+    'non-Iranian Exchange'
+  ],
 
   // Cache TTL settings (in seconds)
   cacheTTL: {

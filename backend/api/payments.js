@@ -239,6 +239,19 @@ router.post('/', requireAuth, async (req, res) => {
     const time = utils.formatDate();
     const uniqueID = utils.generateUniqueId();
     const adminName = await userService.getUserNickname(req.user?.id) || req.user?.id || 'Unknown';
+
+    const si = config.sellerInfoColumns;
+    let sellerWalletType = '';
+    const sellerRowForNote = await sheets.findRowByValue(config.sheetNames.sellerInfo, 0, discordId);
+    if (sellerRowForNote) {
+      const rd = sellerRowForNote._rawData || [];
+      sellerWalletType = String(rd[si.walletType] || '').trim();
+    }
+    const userNote = (note != null ? String(note) : '').trim();
+    const noteParts = [];
+    if (userNote) noteParts.push(userNote);
+    if (sellerWalletType) noteParts.push(sellerWalletType);
+    const combinedNote = noteParts.join('\n');
     
     // Prepare payment data for sheet - Payment v2 structure
     const cols = config.paymentSheetColumns;
@@ -260,8 +273,8 @@ router.post('/', requireAuth, async (req, res) => {
     paymentData[cols.wallet] = wallet || '';
     paymentData[cols.paypalAddress] = paypalAddress || ''; // Paypal Address comes from sellerInfo.paypalWallet (sent as paypalAddress)
     paymentData[cols.uniqueID] = uniqueID;
-    paymentData[cols.note] = note || '';
-    paymentData[cols.author] = adminName; // Column Q: Admin who submitted
+    paymentData[cols.note] = combinedNote;
+    paymentData[cols.author] = adminName; // Author column
     
     // Add to payment sheet - create array in correct column order (18 columns: 0-17)
     // Column H (index 7) is empty, so we skip it
@@ -287,7 +300,7 @@ router.post('/', requireAuth, async (req, res) => {
         realm: paymentSource || '', // Payment Source sent as Realm
         currency: paymentMethod || '',
         admin: adminName,
-        note: note || '',
+        note: combinedNote,
         time,
         id: uniqueID,
         sheba: iban || '', // Sheba (shomareSheba) sent as iban
